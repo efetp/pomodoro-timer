@@ -143,7 +143,25 @@
 
                             <div class="form-group">
                                 <label class="form-label">Deadline</label>
-                                <input type="date" id="todo-deadline" class="glass-select">
+                                <div class="datepicker-wrapper">
+                                    <input type="hidden" id="todo-deadline">
+                                    <button type="button" id="datepicker-trigger" class="datepicker-trigger">
+                                        <span id="datepicker-display" class="datepicker-display">No deadline set</span>
+                                        <svg class="datepicker-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 5.5h12M4.5 1v3M9.5 1v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                    </button>
+                                    <div id="datepicker-dropdown" class="datepicker-dropdown hidden">
+                                        <div class="dp-nav">
+                                            <button type="button" id="dp-prev" class="dp-nav-btn">&lsaquo;</button>
+                                            <span id="dp-month-year" class="dp-month-year"></span>
+                                            <button type="button" id="dp-next" class="dp-nav-btn">&rsaquo;</button>
+                                        </div>
+                                        <div class="dp-header">
+                                            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                                        </div>
+                                        <div id="dp-days" class="dp-days"></div>
+                                        <button type="button" id="dp-clear" class="dp-clear-btn">Clear deadline</button>
+                                    </div>
+                                </div>
                             </div>
 
                             <button type="submit" class="submit-task-btn">Add Task</button>
@@ -204,6 +222,7 @@
                         </div>
                         <div id="cal-days" class="cal-days"></div>
                     </div>
+                    <div id="cal-filter-info" class="cal-filter-info hidden"></div>
                 </div>
             </section>
         </main>

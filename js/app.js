@@ -18,6 +18,7 @@ let isBreak = false;
 let selectedTodoId = null;
 let selectedCategory = "university";
 let editingTodoId = null;
+let selectedCalendarDate = null;
 
 // --- DOM Elements ---
 const timerTime = document.getElementById("timer-time");
@@ -247,6 +248,8 @@ function closeModal() {
     courseGroup.classList.remove("hidden");
     document.querySelector(".modal-title").textContent = "New Task";
     document.querySelector(".submit-task-btn").textContent = "Add Task";
+    setDeadlineValue("");
+    closeDatepicker();
 }
 
 function setCategory(category) {
@@ -367,8 +370,21 @@ function renderTodo(todo) {
 
 function loadTodos() {
     const data = loadData();
+    // Sort: tasks with deadlines first (nearest to furthest), then tasks without deadlines
+    data.todos.sort((a, b) => {
+        if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+        if (a.deadline && !b.deadline) return -1;
+        if (!a.deadline && b.deadline) return 1;
+        return 0;
+    });
+    saveData(data);
     todoList.innerHTML = "";
-    data.todos.forEach(todo => todoList.appendChild(renderTodo(todo)));
+
+    const filteredTodos = selectedCalendarDate
+        ? data.todos.filter(t => t.deadline === selectedCalendarDate)
+        : data.todos;
+
+    filteredTodos.forEach(todo => todoList.appendChild(renderTodo(todo)));
 }
 
 function addTodo(formData) {
@@ -391,6 +407,7 @@ function addTodo(formData) {
     });
     saveData(data);
     loadTodos();
+    renderCalendar();
 }
 
 function editTodo(id) {
@@ -427,7 +444,7 @@ function editTodo(id) {
     document.getElementById("todo-urgency").value = todo.urgency || "upcoming";
 
     // Set deadline
-    document.getElementById("todo-deadline").value = todo.deadline || "";
+    setDeadlineValue(todo.deadline || "");
 }
 
 function updateTodo(id, formData) {
@@ -449,6 +466,7 @@ function updateTodo(id, formData) {
 
     saveData(data);
     loadTodos();
+    renderCalendar();
 }
 
 function toggleTodo(id, completed) {
@@ -467,6 +485,7 @@ function deleteTodo(id) {
         currentTaskDiv.classList.add("hidden");
     }
     loadTodos();
+    renderCalendar();
 }
 
 function selectTodo(id, name) {
@@ -528,6 +547,13 @@ function updateClock() {
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 
+function getDeadlineDates() {
+    const data = loadData();
+    const dates = new Set();
+    data.todos.forEach(t => { if (t.deadline) dates.add(t.deadline); });
+    return dates;
+}
+
 function renderCalendar() {
     const months = ["January","February","March","April","May","June",
                     "July","August","September","October","November","December"];
@@ -538,6 +564,7 @@ function renderCalendar() {
     const daysInPrev = new Date(calendarYear, calendarMonth, 0).getDate();
     const today = new Date();
     const isCurrentMonth = today.getMonth() === calendarMonth && today.getFullYear() === calendarYear;
+    const deadlineDates = getDeadlineDates();
 
     let html = "";
     for (let i = firstDay - 1; i >= 0; i--) {
@@ -545,7 +572,14 @@ function renderCalendar() {
     }
     for (let d = 1; d <= daysInMonth; d++) {
         const isToday = isCurrentMonth && d === today.getDate();
-        html += `<div class="cal-day${isToday ? " today" : ""}">${d}</div>`;
+        const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const hasDeadline = deadlineDates.has(dateStr);
+        const isSelected = selectedCalendarDate === dateStr;
+        let cls = "cal-day cal-day-interactive";
+        if (isToday) cls += " today";
+        if (hasDeadline) cls += " has-deadline";
+        if (isSelected) cls += " selected";
+        html += `<div class="${cls}" data-date="${dateStr}">${d}</div>`;
     }
     const totalCells = firstDay + daysInMonth;
     const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
@@ -553,7 +587,147 @@ function renderCalendar() {
         html += `<div class="cal-day other-month">${i}</div>`;
     }
     calDays.innerHTML = html;
+
+    // Add click listeners to interactive days
+    calDays.querySelectorAll(".cal-day-interactive").forEach(dayEl => {
+        dayEl.addEventListener("click", () => {
+            const date = dayEl.dataset.date;
+            if (selectedCalendarDate === date) {
+                selectedCalendarDate = null;
+            } else {
+                selectedCalendarDate = date;
+            }
+            renderCalendar();
+            loadTodos();
+        });
+    });
+
+    // Update filter info
+    const filterInfo = document.getElementById("cal-filter-info");
+    if (selectedCalendarDate) {
+        const d = new Date(selectedCalendarDate + "T00:00:00");
+        const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        filterInfo.innerHTML = `Showing tasks due <strong>${monthNames[d.getMonth()]} ${d.getDate()}</strong> <button id="cal-clear-filter" class="cal-clear-btn">&times;</button>`;
+        filterInfo.classList.remove("hidden");
+        document.getElementById("cal-clear-filter").addEventListener("click", () => {
+            selectedCalendarDate = null;
+            renderCalendar();
+            loadTodos();
+        });
+    } else {
+        filterInfo.classList.add("hidden");
+    }
 }
+
+// ============================================================
+// CUSTOM DATE PICKER (for deadline field)
+// ============================================================
+
+let dpMonth = new Date().getMonth();
+let dpYear = new Date().getFullYear();
+const dpTrigger = document.getElementById("datepicker-trigger");
+const dpDropdown = document.getElementById("datepicker-dropdown");
+const dpDisplay = document.getElementById("datepicker-display");
+const dpDays = document.getElementById("dp-days");
+const dpMonthYear = document.getElementById("dp-month-year");
+const dpPrev = document.getElementById("dp-prev");
+const dpNext = document.getElementById("dp-next");
+const dpClear = document.getElementById("dp-clear");
+const deadlineInput = document.getElementById("todo-deadline");
+
+function openDatepicker() {
+    // If there's already a value, navigate to that month
+    if (deadlineInput.value) {
+        const d = new Date(deadlineInput.value + "T00:00:00");
+        dpMonth = d.getMonth();
+        dpYear = d.getFullYear();
+    }
+    renderDatepicker();
+    dpDropdown.classList.remove("hidden");
+}
+
+function closeDatepicker() {
+    dpDropdown.classList.add("hidden");
+}
+
+function setDeadlineValue(dateStr) {
+    deadlineInput.value = dateStr;
+    if (dateStr) {
+        const d = new Date(dateStr + "T00:00:00");
+        const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        dpDisplay.textContent = `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        dpDisplay.classList.add("has-value");
+    } else {
+        dpDisplay.textContent = "No deadline set";
+        dpDisplay.classList.remove("has-value");
+    }
+}
+
+function renderDatepicker() {
+    const months = ["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"];
+    dpMonthYear.textContent = `${months[dpMonth]} ${dpYear}`;
+
+    const firstDay = new Date(dpYear, dpMonth, 1).getDay();
+    const daysInMonth = new Date(dpYear, dpMonth + 1, 0).getDate();
+    const daysInPrev = new Date(dpYear, dpMonth, 0).getDate();
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const selectedVal = deadlineInput.value;
+
+    let html = "";
+    for (let i = firstDay - 1; i >= 0; i--) {
+        html += `<div class="dp-day other-month">${daysInPrev - i}</div>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${dpYear}-${String(dpMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        let cls = "dp-day";
+        if (dateStr === todayStr) cls += " today";
+        if (dateStr === selectedVal) cls += " selected";
+        html += `<div class="${cls}" data-date="${dateStr}">${d}</div>`;
+    }
+    const totalCells = firstDay + daysInMonth;
+    const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (let i = 1; i <= remaining; i++) {
+        html += `<div class="dp-day other-month">${i}</div>`;
+    }
+    dpDays.innerHTML = html;
+
+    dpDays.querySelectorAll(".dp-day:not(.other-month)").forEach(dayEl => {
+        dayEl.addEventListener("click", () => {
+            setDeadlineValue(dayEl.dataset.date);
+            closeDatepicker();
+        });
+    });
+}
+
+dpTrigger.addEventListener("click", () => {
+    dpDropdown.classList.contains("hidden") ? openDatepicker() : closeDatepicker();
+});
+
+dpPrev.addEventListener("click", () => {
+    dpMonth--;
+    if (dpMonth < 0) { dpMonth = 11; dpYear--; }
+    renderDatepicker();
+});
+
+dpNext.addEventListener("click", () => {
+    dpMonth++;
+    if (dpMonth > 11) { dpMonth = 0; dpYear++; }
+    renderDatepicker();
+});
+
+dpClear.addEventListener("click", () => {
+    setDeadlineValue("");
+    closeDatepicker();
+});
+
+// Close datepicker when clicking outside
+document.addEventListener("click", (e) => {
+    if (!dpDropdown.classList.contains("hidden") && !e.target.closest(".datepicker-wrapper")) {
+        closeDatepicker();
+    }
+});
 
 // ============================================================
 // EVENT LISTENERS
