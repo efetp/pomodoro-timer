@@ -239,17 +239,19 @@ function renderTodo(todo) {
     li.className = "todo-item";
     li.dataset.id = todo.id;
 
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
     li.innerHTML = `
         <input type="checkbox" ${todo.completed ? "checked" : ""}>
         <div class="todo-info">
             <div class="todo-name ${todo.completed ? "completed" : ""}">${escapeHtml(todo.name)}</div>
-            <div class="todo-meta">
-                ${minutes} min —
-                <span class="todo-pomodoros">
-                    <span class="pomo-badge light">${pomos.light}L</span>
-                    <span class="pomo-badge medium">${pomos.medium}M</span>
-                    <span class="pomo-badge deep">${pomos.deep}D</span>
-                </span>
+            <div class="todo-meta">${timeStr} estimated</div>
+            <div class="todo-pomodoros">
+                <span class="pomo-badge light"><span class="pomo-count">${pomos.light}</span><span class="pomo-label"> light</span></span>
+                <span class="pomo-badge medium"><span class="pomo-count">${pomos.medium}</span><span class="pomo-label"> med</span></span>
+                <span class="pomo-badge deep"><span class="pomo-count">${pomos.deep}</span><span class="pomo-label"> deep</span></span>
             </div>
         </div>
         <div class="todo-actions">
