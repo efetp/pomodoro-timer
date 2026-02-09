@@ -5,7 +5,7 @@
 // TODO: Replace these with your Supabase project credentials
 const SUPABASE_URL = "https://aueslcxutfsvzekiaznc.supabase.co";
 // Paste the "anon public" key from Supabase > Settings > API (starts with eyJ...)
-const SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1ZXNsY3h1dGZzdnpla2lhem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjAwMjUsImV4cCI6MjA4NjIzNjAyNX0.VZXangJXNHeu4IOXtJm1o9mWyNQOGGrPyGEPSUeryTs";
 
 let sb = null;
 let currentUser = null;
@@ -21,6 +21,11 @@ if (window.supabase) {
 // ============================================================
 
 async function signInWithGoogle() {
+    if (!sb) {
+        console.warn("Supabase not initialized - running in offline mode");
+        alert("Sign in is not available in offline mode. Please check your internet connection.");
+        return;
+    }
     const { error } = await sb.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: window.location.origin + window.location.pathname }
@@ -29,16 +34,26 @@ async function signInWithGoogle() {
 }
 
 async function signInWithEmail(email, password) {
+    if (!sb) {
+        throw new Error("Supabase not initialized - running in offline mode");
+    }
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
 }
 
 async function signUpWithEmail(email, password) {
+    if (!sb) {
+        throw new Error("Supabase not initialized - running in offline mode");
+    }
     const { error } = await sb.auth.signUp({ email, password });
     if (error) throw error;
 }
 
 async function signOut() {
+    if (!sb) {
+        currentUser = null;
+        return;
+    }
     const { error } = await sb.auth.signOut();
     if (error) console.warn("Sign-out error:", error.message);
     currentUser = null;
