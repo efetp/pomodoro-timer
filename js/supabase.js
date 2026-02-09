@@ -3,11 +3,18 @@
 // ============================================================
 
 // TODO: Replace these with your Supabase project credentials
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://aueslcxutfsvzekiaznc.supabase.co";
+// Paste the "anon public" key from Supabase > Settings > API (starts with eyJ...)
+const SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE";
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb = null;
 let currentUser = null;
+
+if (window.supabase) {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+    console.warn("Supabase CDN not loaded — running in offline/localStorage mode");
+}
 
 // ============================================================
 // AUTH FUNCTIONS
@@ -174,7 +181,7 @@ async function migrateLocalStorageToSupabase(userId) {
 // AUTH STATE LISTENER
 // ============================================================
 
-sb.auth.onAuthStateChange(async (event, session) => {
+if (sb) sb.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {
         currentUser = session.user;
         updateAuthUI(true);

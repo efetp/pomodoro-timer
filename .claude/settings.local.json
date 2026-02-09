@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:studywithme.io)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(node -e:*)"
     ]
   }
 }
