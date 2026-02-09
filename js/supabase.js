@@ -5,7 +5,7 @@
 // TODO: Replace these with your Supabase project credentials
 const SUPABASE_URL = "https://aueslcxutfsvzekiaznc.supabase.co";
 // Paste the "anon public" key from Supabase > Settings > API (starts with eyJ...)
-const SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1ZXNsY3h1dGZzdnpla2lhem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NjAwMjUsImV4cCI6MjA4NjIzNjAyNX0.VZXangJXNHeu4IOXtJm1o9mWyNQOGGrPyGEPSUeryTs";
 
 let sb = null;
 let currentUser = null;
