@@ -178,6 +178,8 @@ function playAlertSound() {
     }
     playTone(523, 0, now, 0.8);
     playTone(659, 3, now + 0.2, 0.6);
+    playTone(523, 0, now + 0.9, 0.8);
+    playTone(659, 3, now + 1.1, 0.6);
 }
 
 // ============================================================
