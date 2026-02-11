@@ -47,7 +47,16 @@
                 </div>
 
                 <button id="btn-google-signin" class="auth-google-btn" type="button">
-                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 48 48">
+                        <path fill="#EA4335"
+                            d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                        <path fill="#4285F4"
+                            d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                        <path fill="#FBBC05"
+                            d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                        <path fill="#34A853"
+                            d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                    </svg>
                     Continue with Google
                 </button>
 
@@ -60,7 +69,8 @@
                         <input type="email" id="auth-email" placeholder="Email" required>
                     </div>
                     <div class="form-group">
-                        <input type="password" id="auth-password" placeholder="Password (min 8 chars)" required minlength="8">
+                        <input type="password" id="auth-password" placeholder="Password (min 8 chars)" required
+                            minlength="8">
                     </div>
                     <div id="auth-error" class="auth-error hidden"></div>
                     <div id="auth-success" class="auth-success hidden"></div>
@@ -134,16 +144,22 @@
                                     <select id="todo-course" class="glass-select">
                                         <option value="">Select course...</option>
                                     </select>
-                                    <button type="button" id="btn-manage-courses" class="icon-btn" title="Manage courses">
-                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                    <button type="button" id="btn-manage-courses" class="icon-btn"
+                                        title="Manage courses">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                            <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4"
+                                                stroke-linecap="round" />
+                                        </svg>
                                     </button>
                                 </div>
                                 <div id="course-manager" class="course-manager hidden">
                                     <div class="course-add-row">
-                                        <input type="text" id="new-course-input" class="course-input" placeholder="e.g. MATH 323">
+                                        <input type="text" id="new-course-input" class="course-input"
+                                            placeholder="e.g. MATH 323">
                                         <button type="button" id="btn-add-course" class="course-add-btn">Add</button>
                                     </div>
-                                    <input type="text" id="course-search" class="course-search" placeholder="Search courses...">
+                                    <input type="text" id="course-search" class="course-search"
+                                        placeholder="Search courses...">
                                     <ul id="course-list" class="course-list"></ul>
                                 </div>
                             </div>
@@ -169,23 +185,39 @@
                                 <label class="form-label">Estimated Duration</label>
                                 <div class="duration-row">
                                     <div class="duration-field">
-                                        <button type="button" class="duration-arrow duration-down" data-target="todo-hours" data-step="1">
-                                            <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <button type="button" class="duration-arrow duration-down"
+                                            data-target="todo-hours" data-step="1">
+                                            <svg width="10" height="10" viewBox="0 0 10 10">
+                                                <path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.4"
+                                                    fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
                                         </button>
                                         <input type="number" id="todo-hours" min="0" max="24" value="0">
                                         <span class="duration-label">hrs</span>
-                                        <button type="button" class="duration-arrow duration-up" data-target="todo-hours" data-step="1">
-                                            <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 6.5l3-3 3 3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <button type="button" class="duration-arrow duration-up"
+                                            data-target="todo-hours" data-step="1">
+                                            <svg width="10" height="10" viewBox="0 0 10 10">
+                                                <path d="M2 6.5l3-3 3 3" stroke="currentColor" stroke-width="1.4"
+                                                    fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
                                         </button>
                                     </div>
                                     <div class="duration-field">
-                                        <button type="button" class="duration-arrow duration-down" data-target="todo-minutes" data-step="5">
-                                            <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <button type="button" class="duration-arrow duration-down"
+                                            data-target="todo-minutes" data-step="5">
+                                            <svg width="10" height="10" viewBox="0 0 10 10">
+                                                <path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.4"
+                                                    fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
                                         </button>
                                         <input type="number" id="todo-minutes" min="0" max="59" value="30">
                                         <span class="duration-label">min</span>
-                                        <button type="button" class="duration-arrow duration-up" data-target="todo-minutes" data-step="5">
-                                            <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 6.5l3-3 3 3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <button type="button" class="duration-arrow duration-up"
+                                            data-target="todo-minutes" data-step="5">
+                                            <svg width="10" height="10" viewBox="0 0 10 10">
+                                                <path d="M2 6.5l3-3 3 3" stroke="currentColor" stroke-width="1.4"
+                                                    fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
                                         </button>
                                     </div>
                                 </div>
@@ -197,7 +229,13 @@
                                     <input type="hidden" id="todo-deadline">
                                     <button type="button" id="datepicker-trigger" class="datepicker-trigger">
                                         <span id="datepicker-display" class="datepicker-display">No deadline set</span>
-                                        <svg class="datepicker-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 5.5h12M4.5 1v3M9.5 1v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                        <svg class="datepicker-icon" width="14" height="14" viewBox="0 0 14 14"
+                                            fill="none">
+                                            <rect x="1" y="2.5" width="12" height="10" rx="1.5" stroke="currentColor"
+                                                stroke-width="1.2" />
+                                            <path d="M1 5.5h12M4.5 1v3M9.5 1v3" stroke="currentColor" stroke-width="1.2"
+                                                stroke-linecap="round" />
+                                        </svg>
                                     </button>
                                     <div id="datepicker-dropdown" class="datepicker-dropdown hidden">
                                         <div class="dp-nav">
@@ -230,16 +268,20 @@
             <!-- CENTER: Timer Panel -->
             <section class="timer-section glass-panel">
                 <div class="mode-selector">
-                    <button class="mode-btn active" data-mode="light">Light</button>
-                    <button class="mode-btn" data-mode="medium">Medium</button>
-                    <button class="mode-btn" data-mode="deep">Deep</button>
+                    <button class="mode-btn active" data-mode="light">Light Work</button>
+                    <button class="mode-btn" data-mode="deep">Deep Work</button>
                 </div>
 
                 <div class="timer-ring-container">
                     <svg class="timer-ring" viewBox="0 0 200 200">
                         <circle class="timer-ring-bg" cx="100" cy="100" r="90" />
                         <circle class="timer-ring-progress" cx="100" cy="100" r="90" />
+                        <!-- Invisible thick ring for slider interaction -->
+                        <circle class="slider-interaction-ring" cx="100" cy="100" r="90" fill="none"
+                            stroke="transparent" stroke-width="24" style="cursor: grab;" />
                     </svg>
+                    <!-- Slider handle (positioned via JS) -->
+                    <div class="slider-handle" id="slider-handle"></div>
                     <div class="timer-display">
                         <span id="timer-time">25:00</span>
                         <span id="timer-label">WORK</span>
@@ -250,6 +292,17 @@
                     <button id="btn-start" class="control-btn primary">Start</button>
                     <button id="btn-pause" class="control-btn" disabled>Pause</button>
                     <button id="btn-reset" class="control-btn">Reset</button>
+                </div>
+
+                <!-- Break duration selector (Custom mode only) -->
+                <div id="break-selector" class="break-selector hidden">
+                    <span class="break-selector-label">Break:</span>
+                    <div class="break-options">
+                        <button class="break-btn active" data-break="5">5m</button>
+                        <button class="break-btn" data-break="10">10m</button>
+                        <button class="break-btn" data-break="15">15m</button>
+                        <button class="break-btn" data-break="20">20m</button>
+                    </div>
                 </div>
 
                 <div id="current-task" class="current-task hidden">

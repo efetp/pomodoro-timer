@@ -4,8 +4,8 @@
 
 const MODES = {
     light: { work: 25, break: 5, color: "#4ecca3" },
-    medium: { work: 35, break: 7, color: "#f0a500" },
     deep: { work: 50, break: 10, color: "#e74c3c" },
+    custom: { work: 25, break: 5, color: "#a78bfa" },
 };
 
 // --- State ---
@@ -16,6 +16,9 @@ let timerInterval = null;
 let isRunning = false;
 let isBreak = false;
 let selectedTodoId = null;
+let customWorkMinutes = 25;
+let customBreakMinutes = 5;
+let isDraggingSlider = false;
 let selectedCategory = "university";
 let editingTodoId = null;
 let selectedCalendarDate = null;
@@ -202,14 +205,28 @@ function setMode(mode) {
     if (isRunning) return;
     currentMode = mode;
     const config = MODES[mode];
+
+    // Update mode button highlights
     modeButtons.forEach(btn => btn.classList.remove("active"));
-    document.querySelector(`[data-mode="${mode}"]`).classList.add("active");
+    const modeBtn = document.querySelector(`[data-mode="${mode}"]`);
+    if (modeBtn) modeBtn.classList.add("active");
+
     document.documentElement.style.setProperty("--active-color", config.color);
     progressRing.style.stroke = config.color;
     isBreak = false;
-    totalSeconds = config.work * 60;
+
+    if (mode === "custom") {
+        totalSeconds = customWorkMinutes * 60;
+    } else {
+        totalSeconds = config.work * 60;
+        // Sync custom values to preset for slider display
+        customWorkMinutes = config.work;
+        customBreakMinutes = config.break;
+    }
     remainingSeconds = totalSeconds;
     updateDisplay();
+    updateSliderHandle();
+    toggleBreakSelector(mode === "custom");
 }
 
 function startTimer() {
@@ -220,6 +237,9 @@ function startTimer() {
     modeButtons.forEach(btn => {
         if (!btn.classList.contains("active")) btn.disabled = true;
     });
+    // Hide slider while running
+    const sh = document.getElementById("slider-handle");
+    if (sh) sh.style.display = "none";
     timerInterval = setInterval(() => {
         remainingSeconds--;
         updateDisplay();
@@ -244,12 +264,17 @@ function pauseTimer() {
 function resetTimer() {
     pauseTimer();
     isBreak = false;
-    totalSeconds = MODES[currentMode].work * 60;
+    if (currentMode === "custom") {
+        totalSeconds = customWorkMinutes * 60;
+    } else {
+        totalSeconds = MODES[currentMode].work * 60;
+    }
     remainingSeconds = totalSeconds;
     updateDisplay();
     modeButtons.forEach(btn => btn.disabled = false);
     btnStart.disabled = false;
     btnPause.disabled = true;
+    updateSliderHandle();
 }
 
 async function onTimerComplete() {
@@ -260,18 +285,27 @@ async function onTimerComplete() {
     if (!isBreak) {
         await logSession();
         isBreak = true;
-        totalSeconds = MODES[currentMode].break * 60;
+        if (currentMode === "custom") {
+            totalSeconds = customBreakMinutes * 60;
+        } else {
+            totalSeconds = MODES[currentMode].break * 60;
+        }
         remainingSeconds = totalSeconds;
         updateDisplay();
         setTimeout(() => startTimer(), 2000);
     } else {
         isBreak = false;
-        totalSeconds = MODES[currentMode].work * 60;
+        if (currentMode === "custom") {
+            totalSeconds = customWorkMinutes * 60;
+        } else {
+            totalSeconds = MODES[currentMode].work * 60;
+        }
         remainingSeconds = totalSeconds;
         updateDisplay();
         modeButtons.forEach(btn => btn.disabled = false);
         btnStart.disabled = false;
         btnPause.disabled = true;
+        updateSliderHandle();
     }
 }
 
@@ -1053,6 +1087,149 @@ btnReset.addEventListener("click", resetTimer);
 modeButtons.forEach(btn => {
     btn.addEventListener("click", () => setMode(btn.dataset.mode));
 });
+
+// ============================================================
+// CIRCULAR SLIDER
+// ============================================================
+
+const sliderHandle = document.getElementById("slider-handle");
+const sliderRing = document.querySelector(".slider-interaction-ring");
+const ringContainer = document.querySelector(".timer-ring-container");
+const breakSelector = document.getElementById("break-selector");
+
+function angleToDuration(angleDeg) {
+    // Map 0–360° to 5–60 min (12 steps of 5 min)
+    // 0° is top (12 o'clock)
+    let norm = ((angleDeg % 360) + 360) % 360;
+    let minutes = Math.round(norm / 360 * 12) * 5;
+    if (minutes === 0) minutes = 60; // full circle = 60
+    return Math.max(5, Math.min(60, minutes));
+}
+
+function durationToAngle(minutes) {
+    // Map 5–60 min to 0–360° (clockwise from top)
+    return ((minutes % 60) / 60) * 360;
+}
+
+function updateSliderHandle() {
+    if (!sliderHandle || !ringContainer) return;
+    const angleDeg = durationToAngle(currentMode === "custom" ? customWorkMinutes : MODES[currentMode].work);
+    const angleRad = (angleDeg - 90) * (Math.PI / 180); // -90 to start from top
+    const containerRect = ringContainer.getBoundingClientRect();
+    const cx = containerRect.width / 2;
+    const cy = containerRect.height / 2;
+    const ringRadius = cx * (90 / 100); // r=90 in viewBox 200
+    const x = cx + ringRadius * Math.cos(angleRad);
+    const y = cy + ringRadius * Math.sin(angleRad);
+    sliderHandle.style.left = `${x}px`;
+    sliderHandle.style.top = `${y}px`;
+    sliderHandle.style.display = isRunning ? "none" : "block";
+}
+
+function getAngleFromEvent(e, container) {
+    const rect = container.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let angle = Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
+    angle = (angle + 90 + 360) % 360; // Normalize so 0° = top
+    return angle;
+}
+
+function onSliderDrag(e) {
+    if (!isDraggingSlider || isRunning) return;
+    e.preventDefault();
+    const angle = getAngleFromEvent(e, ringContainer);
+    const newMinutes = angleToDuration(angle);
+    customWorkMinutes = newMinutes;
+
+    // Switch to custom mode
+    if (currentMode !== "custom") {
+        currentMode = "custom";
+        MODES.custom.work = customWorkMinutes;
+        modeButtons.forEach(btn => btn.classList.remove("active"));
+        document.documentElement.style.setProperty("--active-color", MODES.custom.color);
+        progressRing.style.stroke = MODES.custom.color;
+        toggleBreakSelector(true);
+    }
+    MODES.custom.work = customWorkMinutes;
+    totalSeconds = customWorkMinutes * 60;
+    remainingSeconds = totalSeconds;
+    isBreak = false;
+    updateDisplay();
+    updateSliderHandle();
+}
+
+function onSliderEnd() {
+    if (isDraggingSlider) {
+        isDraggingSlider = false;
+        document.body.style.cursor = "";
+        if (sliderRing) sliderRing.style.cursor = "grab";
+    }
+}
+
+// Mouse events
+if (sliderRing) {
+    sliderRing.addEventListener("mousedown", (e) => {
+        if (isRunning) return;
+        isDraggingSlider = true;
+        document.body.style.cursor = "grabbing";
+        sliderRing.style.cursor = "grabbing";
+        onSliderDrag(e);
+    });
+}
+if (sliderHandle) {
+    sliderHandle.addEventListener("mousedown", (e) => {
+        if (isRunning) return;
+        isDraggingSlider = true;
+        document.body.style.cursor = "grabbing";
+        e.preventDefault();
+    });
+}
+document.addEventListener("mousemove", onSliderDrag);
+document.addEventListener("mouseup", onSliderEnd);
+
+// Touch events
+if (sliderRing) {
+    sliderRing.addEventListener("touchstart", (e) => {
+        if (isRunning) return;
+        isDraggingSlider = true;
+        onSliderDrag(e);
+    }, { passive: false });
+}
+if (sliderHandle) {
+    sliderHandle.addEventListener("touchstart", (e) => {
+        if (isRunning) return;
+        isDraggingSlider = true;
+        e.preventDefault();
+    }, { passive: false });
+}
+document.addEventListener("touchmove", onSliderDrag, { passive: false });
+document.addEventListener("touchend", onSliderEnd);
+
+// ============================================================
+// BREAK SELECTOR
+// ============================================================
+
+function toggleBreakSelector(show) {
+    if (breakSelector) {
+        breakSelector.classList.toggle("hidden", !show);
+    }
+}
+
+document.querySelectorAll(".break-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        customBreakMinutes = parseInt(btn.dataset.break, 10);
+        MODES.custom.break = customBreakMinutes;
+        document.querySelectorAll(".break-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+    });
+});
+
+// Position slider handle on load and resize
+window.addEventListener("resize", updateSliderHandle);
+setTimeout(updateSliderHandle, 100);
 
 btnAddTask.addEventListener("click", () => {
     taskModal.classList.contains("hidden") ? openModal() : closeModal();
