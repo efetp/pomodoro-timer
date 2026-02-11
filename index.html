@@ -130,15 +130,22 @@
 
                             <div class="form-group" id="course-group">
                                 <label class="form-label">Course</label>
-                                <select id="todo-course" class="glass-select">
-                                    <option value="">Select course...</option>
-                                    <option value="MECH 560">MECH 560</option>
-                                    <option value="MECH 412">MECH 412</option>
-                                    <option value="MECH 362">MECH 362</option>
-                                    <option value="CAPSTONE">CAPSTONE</option>
-                                    <option value="FACC 400">FACC 400</option>
-                                    <option value="MATH 323">MATH 323</option>
-                                </select>
+                                <div class="course-selector">
+                                    <select id="todo-course" class="glass-select">
+                                        <option value="">Select course...</option>
+                                    </select>
+                                    <button type="button" id="btn-manage-courses" class="icon-btn" title="Manage courses">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                    </button>
+                                </div>
+                                <div id="course-manager" class="course-manager hidden">
+                                    <div class="course-add-row">
+                                        <input type="text" id="new-course-input" class="course-input" placeholder="e.g. MATH 323">
+                                        <button type="button" id="btn-add-course" class="course-add-btn">Add</button>
+                                    </div>
+                                    <input type="text" id="course-search" class="course-search" placeholder="Search courses...">
+                                    <ul id="course-list" class="course-list"></ul>
+                                </div>
                             </div>
 
                             <div class="form-row">
@@ -146,17 +153,14 @@
                                     <label class="form-label">Priority</label>
                                     <select id="todo-priority" class="glass-select">
                                         <option value="high">High</option>
-                                        <option value="medium" selected>Medium</option>
-                                        <option value="low">Low</option>
+                                        <option value="low" selected>Low</option>
                                     </select>
                                 </div>
                                 <div class="form-group flex-1">
                                     <label class="form-label">Urgency</label>
                                     <select id="todo-urgency" class="glass-select">
                                         <option value="critical">Critical</option>
-                                        <option value="pressing">Pressing</option>
-                                        <option value="upcoming" selected>Upcoming</option>
-                                        <option value="flexible">Flexible</option>
+                                        <option value="flexible" selected>Flexible</option>
                                     </select>
                                 </div>
                             </div>
@@ -215,7 +219,71 @@
                     </div>
                 </div>
 
+                <!-- View Mode Toggle -->
+                <div class="view-mode-selector">
+                    <button class="view-mode-btn active" data-view="list">List</button>
+                    <button class="view-mode-btn" data-view="matrix">Matrix</button>
+                </div>
+
+                <div class="task-tabs">
+                    <button class="task-tab active" data-tab="current">Current Tasks</button>
+                    <button class="task-tab" data-tab="completed">Completed</button>
+                </div>
+
                 <ul id="todo-list" class="todo-list"></ul>
+
+                <!-- Eisenhower Matrix View -->
+                <div id="matrix-view" class="matrix-view hidden">
+                    <!-- Category Tabs for Matrix -->
+                    <div class="matrix-category-tabs">
+                        <button class="matrix-cat-btn active" data-category="university">University</button>
+                        <button class="matrix-cat-btn" data-category="career">Career</button>
+                        <button class="matrix-cat-btn" data-category="other">Other</button>
+                    </div>
+
+                    <!-- 2x2 Matrix Grid -->
+                    <div class="matrix-grid">
+                        <!-- Quadrant 1: Do (High+Critical) -->
+                        <div class="matrix-quadrant" data-quadrant="do">
+                            <div class="quadrant-header">
+                                <span class="quadrant-title">Do</span>
+                                <span class="quadrant-subtitle">Urgent & Important</span>
+                            </div>
+                            <ul class="quadrant-tasks" id="quadrant-do"></ul>
+                            <button class="quadrant-expand hidden" data-quadrant="do">+0 more</button>
+                        </div>
+
+                        <!-- Quadrant 2: Schedule (High+Flexible) -->
+                        <div class="matrix-quadrant" data-quadrant="schedule">
+                            <div class="quadrant-header">
+                                <span class="quadrant-title">Schedule</span>
+                                <span class="quadrant-subtitle">Not Urgent & Important</span>
+                            </div>
+                            <ul class="quadrant-tasks" id="quadrant-schedule"></ul>
+                            <button class="quadrant-expand hidden" data-quadrant="schedule">+0 more</button>
+                        </div>
+
+                        <!-- Quadrant 3: Delegate (Low+Critical) -->
+                        <div class="matrix-quadrant" data-quadrant="delegate">
+                            <div class="quadrant-header">
+                                <span class="quadrant-title">Delegate</span>
+                                <span class="quadrant-subtitle">Urgent & Not Important</span>
+                            </div>
+                            <ul class="quadrant-tasks" id="quadrant-delegate"></ul>
+                            <button class="quadrant-expand hidden" data-quadrant="delegate">+0 more</button>
+                        </div>
+
+                        <!-- Quadrant 4: Delete (Low+Flexible) -->
+                        <div class="matrix-quadrant" data-quadrant="delete">
+                            <div class="quadrant-header">
+                                <span class="quadrant-title">Delete</span>
+                                <span class="quadrant-subtitle">Not Urgent & Not Important</span>
+                            </div>
+                            <ul class="quadrant-tasks" id="quadrant-delete"></ul>
+                            <button class="quadrant-expand hidden" data-quadrant="delete">+0 more</button>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- CENTER: Timer Panel -->

@@ -19,6 +19,10 @@ let selectedTodoId = null;
 let selectedCategory = "university";
 let editingTodoId = null;
 let selectedCalendarDate = null;
+let activeTab = "current";
+let currentView = "list";
+let matrixCategory = "university";
+let expandedQuadrants = new Set();
 
 // --- DOM Elements ---
 const timerTime = document.getElementById("timer-time");
@@ -75,6 +79,75 @@ function loadData() {
 
 function saveData(data) {
     localStorage.setItem("focusgrid_data", JSON.stringify(data));
+}
+
+// ============================================================
+// COURSE MANAGEMENT
+// ============================================================
+
+function loadCourses(category = "university") {
+    const key = `focusgrid_courses_${category}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+}
+
+function saveCourses(courses, category = "university") {
+    const key = `focusgrid_courses_${category}`;
+    localStorage.setItem(key, JSON.stringify(courses));
+}
+
+function renderCourseDropdown(category = selectedCategory) {
+    const select = document.getElementById("todo-course");
+    const currentVal = select.value;
+    const courses = loadCourses(category);
+    const label = category === "university" ? "course" : "subcategory";
+    select.innerHTML = `<option value="">Select ${label}...</option>`;
+    courses.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        select.appendChild(opt);
+    });
+    // Restore previous selection if still valid
+    if (courses.includes(currentVal)) select.value = currentVal;
+}
+
+function renderCourseList(filter = "") {
+    const list = document.getElementById("course-list");
+    const courses = loadCourses(selectedCategory);
+    const filtered = filter
+        ? courses.filter(c => c.toLowerCase().includes(filter.toLowerCase()))
+        : courses;
+    list.innerHTML = "";
+    if (filtered.length === 0) {
+        const label = selectedCategory === "university" ? "courses" : "subcategories";
+        list.innerHTML = `<li style="color: var(--text-muted); font-weight: 400; justify-content: center;">No ${label} found</li>`;
+        return;
+    }
+    filtered.forEach(c => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span>${c}</span><button class="course-remove-btn" data-course="${c}">&times;</button>`;
+        li.querySelector(".course-remove-btn").addEventListener("click", () => {
+            const updated = loadCourses(selectedCategory).filter(x => x !== c);
+            saveCourses(updated, selectedCategory);
+            renderCourseDropdown(selectedCategory);
+            renderCourseList(filter);
+        });
+        list.appendChild(li);
+    });
+}
+
+function addCourse(name) {
+    const trimmed = name.trim().toUpperCase();
+    if (!trimmed) return;
+    const courses = loadCourses(selectedCategory);
+    if (courses.includes(trimmed)) return;
+    courses.push(trimmed);
+    courses.sort();
+    saveCourses(courses, selectedCategory);
+    renderCourseDropdown(selectedCategory);
+    renderCourseList();
 }
 
 // ============================================================
@@ -263,6 +336,7 @@ function closeModal() {
     document.querySelector('[data-category="university"]').classList.add("active");
     customCategoryInput.classList.add("hidden");
     courseGroup.classList.remove("hidden");
+    document.querySelector('#course-group .form-label').textContent = "Course";
     document.querySelector(".modal-title").textContent = "New Task";
     document.querySelector(".submit-task-btn").textContent = "Add Task";
     setDeadlineValue("");
@@ -273,11 +347,21 @@ function setCategory(category) {
     selectedCategory = category;
     catButtons.forEach(b => b.classList.remove("active"));
     document.querySelector(`[data-category="${category}"]`).classList.add("active");
+
+    // Update label based on category
+    const courseLabel = document.querySelector('#course-group .form-label');
     if (category === "university") {
+        courseLabel.textContent = "Course";
         courseGroup.classList.remove("hidden");
+        renderCourseDropdown(category);
+    } else if (category === "career" || category === "other") {
+        courseLabel.textContent = "Subcategory";
+        courseGroup.classList.remove("hidden");
+        renderCourseDropdown(category);
     } else {
         courseGroup.classList.add("hidden");
     }
+
     if (category === "other") {
         customCategoryInput.classList.remove("hidden");
         customCategoryInput.focus();
@@ -345,7 +429,16 @@ function renderTodo(todo) {
     let deadlineHtml = "";
     if (todo.deadline) {
         const dl = formatDeadline(todo.deadline);
-        deadlineHtml = `<div class="todo-deadline ${dl.urgencyClass}"><span class="deadline-label">Due</span><span class="deadline-date">${dl.label}</span></div>`;
+        let overdueHtml = "";
+        if (!todo.completed) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const deadlineDate = new Date(todo.deadline + "T00:00:00");
+            if (deadlineDate < today) {
+                overdueHtml = `<span class="deadline-overdue-label">OVERDUE</span>`;
+            }
+        }
+        deadlineHtml = `<div class="todo-deadline ${dl.urgencyClass}"><span class="deadline-label">Due</span><span class="deadline-date">${dl.label}</span>${overdueHtml}</div>`;
     }
 
     li.innerHTML = `
@@ -393,6 +486,21 @@ async function loadTodos() {
         const data = loadData();
         todos = data.todos;
     }
+
+    // Auto-delete completed tasks older than 7 days
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const expired = todos.filter(t => t.completed && t.completed_at && t.completed_at < sevenDaysAgo);
+    for (const t of expired) {
+        if (currentUser) {
+            await supabaseDeleteTodo(t.id);
+        } else {
+            const data = loadData();
+            data.todos = data.todos.filter(x => x.id !== t.id);
+            saveData(data);
+        }
+    }
+    todos = todos.filter(t => !(t.completed && t.completed_at && t.completed_at < sevenDaysAgo));
+
     // Sort: tasks with deadlines first (nearest to furthest), then tasks without deadlines
     todos.sort((a, b) => {
         if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
@@ -407,11 +515,26 @@ async function loadTodos() {
     }
     todoList.innerHTML = "";
 
-    const filteredTodos = selectedCalendarDate
-        ? todos.filter(t => t.deadline === selectedCalendarDate)
-        : todos;
+    // Filter by active tab
+    let tabTodos = activeTab === "current"
+        ? todos.filter(t => !t.completed)
+        : todos.filter(t => t.completed);
 
-    filteredTodos.forEach(todo => todoList.appendChild(renderTodo(todo)));
+    // Filter by calendar date
+    const filteredTodos = selectedCalendarDate
+        ? tabTodos.filter(t => t.deadline === selectedCalendarDate)
+        : tabTodos;
+
+    if (filteredTodos.length === 0) {
+        const emptyMsg = document.createElement("li");
+        emptyMsg.className = "todo-empty";
+        emptyMsg.textContent = activeTab === "current"
+            ? "No active tasks"
+            : "No completed tasks";
+        todoList.appendChild(emptyMsg);
+    } else {
+        filteredTodos.forEach(todo => todoList.appendChild(renderTodo(todo)));
+    }
 }
 
 async function addTodo(formData) {
@@ -459,7 +582,7 @@ async function editTodo(id) {
     // Open modal and pre-fill with existing values
     openModal();
     document.querySelector(".modal-title").textContent = "Edit Task";
-    document.querySelector(".submit-task-btn").textContent = "Save Changes";
+    document.querySelector(".submit-task-btn").textContent = "Confirm";
 
     document.getElementById("todo-name").value = todo.name;
     const hrs = Math.floor(todo.estimated_minutes / 60);
@@ -522,13 +645,31 @@ async function updateTodo(id, formData) {
 }
 
 async function toggleTodo(id, completed) {
+    const completedAt = completed ? new Date().toISOString() : null;
+
+    if (completed) {
+        // Add fade-out animation
+        const item = document.querySelector(`[data-id="${id}"]`);
+        if (item) {
+            item.style.transition = "opacity 0.4s ease, transform 0.4s ease";
+            item.style.opacity = "0";
+            item.style.transform = "scale(0.95)";
+            await new Promise(resolve => setTimeout(resolve, 400));
+        }
+    }
+
     if (currentUser) {
-        await supabaseToggleTodo(id, completed);
+        await supabaseToggleTodo(id, completed, completedAt);
     } else {
         const data = loadData();
         const todo = data.todos.find(t => t.id === id);
-        if (todo) { todo.completed = completed; saveData(data); }
+        if (todo) {
+            todo.completed = completed;
+            todo.completed_at = completedAt;
+            saveData(data);
+        }
     }
+
     await loadTodos();
 }
 
@@ -701,6 +842,103 @@ async function renderCalendar() {
 }
 
 // ============================================================
+// EISENHOWER MATRIX
+// ============================================================
+
+async function renderMatrix() {
+    let todos;
+    if (currentUser) {
+        todos = await supabaseLoadTodos();
+    } else {
+        const data = loadData();
+        todos = data.todos;
+    }
+
+    // Filter: only active tasks from selected category
+    const activeTasks = todos.filter(t =>
+        !t.completed &&
+        t.category === matrixCategory
+    );
+
+    // Group into quadrants
+    const quadrants = {
+        do: [],        // high + critical
+        schedule: [],  // high + flexible
+        delegate: [],  // low + critical
+        delete: []     // low + flexible
+    };
+
+    activeTasks.forEach(task => {
+        const importance = task.priority || "low";
+        const urgency = task.urgency || "flexible";
+
+        if (importance === "high" && urgency === "critical") {
+            quadrants.do.push(task);
+        } else if (importance === "high" && urgency === "flexible") {
+            quadrants.schedule.push(task);
+        } else if (importance === "low" && urgency === "critical") {
+            quadrants.delegate.push(task);
+        } else {
+            quadrants.delete.push(task);
+        }
+    });
+
+    // Render each quadrant
+    Object.keys(quadrants).forEach(quadrantName => {
+        renderQuadrant(quadrantName, quadrants[quadrantName]);
+    });
+}
+
+function renderQuadrant(quadrantName, tasks) {
+    const container = document.getElementById(`quadrant-${quadrantName}`);
+    const expandBtn = container.parentElement.querySelector(".quadrant-expand");
+    const isExpanded = expandedQuadrants.has(quadrantName);
+
+    container.innerHTML = "";
+
+    if (tasks.length === 0) {
+        container.innerHTML = '<li style="color: var(--text-muted); font-size: 0.72rem; opacity: 0.5;">No tasks</li>';
+        expandBtn.classList.add("hidden");
+        return;
+    }
+
+    tasks.forEach((task, index) => {
+        const chip = document.createElement("li");
+        chip.className = "matrix-task-chip";
+        if (index >= 6 && !isExpanded) {
+            chip.classList.add("hidden-overflow");
+        }
+
+        let deadlineBadge = "";
+        if (task.deadline) {
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const d = new Date(task.deadline + "T00:00:00");
+            deadlineBadge = `<span class="task-chip-deadline">${months[d.getMonth()]} ${d.getDate()}</span>`;
+        }
+
+        chip.innerHTML = `
+            <span class="task-chip-name">${escapeHtml(task.name)}</span>
+            ${deadlineBadge}
+        `;
+
+        // Click to edit task
+        chip.addEventListener("click", () => editTodo(task.id));
+
+        container.appendChild(chip);
+    });
+
+    // Show/hide expand button
+    if (tasks.length > 6) {
+        expandBtn.classList.remove("hidden");
+        expandBtn.textContent = isExpanded
+            ? "Show less"
+            : `+${tasks.length - 6} more`;
+    } else {
+        expandBtn.classList.add("hidden");
+    }
+}
+
+// ============================================================
 // CUSTOM DATE PICKER (for deadline field)
 // ============================================================
 
@@ -828,6 +1066,102 @@ btnCloseModal.addEventListener("click", closeModal);
 
 catButtons.forEach(btn => {
     btn.addEventListener("click", () => setCategory(btn.dataset.category));
+});
+
+// Course management
+const btnManageCourses = document.getElementById("btn-manage-courses");
+const courseManager = document.getElementById("course-manager");
+const btnAddCourse = document.getElementById("btn-add-course");
+const newCourseInput = document.getElementById("new-course-input");
+const courseSearch = document.getElementById("course-search");
+
+btnManageCourses.addEventListener("click", () => {
+    courseManager.classList.toggle("hidden");
+    if (!courseManager.classList.contains("hidden")) {
+        courseSearch.value = "";
+        // Update placeholder based on category
+        const placeholder = selectedCategory === "university" ? "e.g. MATH 323" : "e.g. Job Search";
+        newCourseInput.placeholder = placeholder;
+        courseSearch.placeholder = selectedCategory === "university" ? "Search courses..." : "Search subcategories...";
+        renderCourseList();
+        newCourseInput.focus();
+    }
+});
+
+btnAddCourse.addEventListener("click", () => {
+    addCourse(newCourseInput.value);
+    newCourseInput.value = "";
+    newCourseInput.focus();
+});
+
+newCourseInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        addCourse(newCourseInput.value);
+        newCourseInput.value = "";
+    }
+});
+
+courseSearch.addEventListener("input", (e) => {
+    renderCourseList(e.target.value);
+});
+
+// Task tab switching
+document.querySelectorAll(".task-tab").forEach(tab => {
+    tab.addEventListener("click", async () => {
+        activeTab = tab.dataset.tab;
+        document.querySelectorAll(".task-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        await loadTodos();
+    });
+});
+
+// View mode switching
+document.querySelectorAll(".view-mode-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        currentView = btn.dataset.view;
+        document.querySelectorAll(".view-mode-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (currentView === "list") {
+            document.getElementById("matrix-view").classList.add("hidden");
+            document.querySelector(".task-tabs").classList.remove("hidden");
+            document.getElementById("todo-list").classList.remove("hidden");
+        } else {
+            document.getElementById("matrix-view").classList.remove("hidden");
+            document.querySelector(".task-tabs").classList.add("hidden");
+            document.getElementById("todo-list").classList.add("hidden");
+            renderMatrix();
+        }
+    });
+});
+
+// Matrix category switching
+document.querySelectorAll(".matrix-cat-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        matrixCategory = btn.dataset.category;
+        document.querySelectorAll(".matrix-cat-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderMatrix();
+    });
+});
+
+// Quadrant expand/collapse
+document.querySelectorAll(".quadrant-expand").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const quadrantName = btn.dataset.quadrant;
+        const container = document.getElementById(`quadrant-${quadrantName}`);
+
+        if (expandedQuadrants.has(quadrantName)) {
+            expandedQuadrants.delete(quadrantName);
+            container.classList.remove("expanded");
+        } else {
+            expandedQuadrants.add(quadrantName);
+            container.classList.add("expanded");
+        }
+
+        renderMatrix();
+    });
 });
 
 // Custom duration arrow buttons
@@ -984,6 +1318,7 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
 
 (async () => {
     updateDisplay();
+    renderCourseDropdown();
 
     // Check for existing Supabase session before loading data
     if (typeof sb !== "undefined" && sb) {

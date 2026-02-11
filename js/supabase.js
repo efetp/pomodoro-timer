@@ -104,6 +104,7 @@ async function supabaseLoadTodos() {
         urgency: row.urgency,
         deadline: row.deadline || "",
         completed: row.completed,
+        completed_at: row.completed_at || null,
         created_at: row.created_at
     }));
 }
@@ -136,8 +137,8 @@ async function supabaseDeleteTodo(id) {
     if (error) console.warn("Delete todo error:", error.message);
 }
 
-async function supabaseToggleTodo(id, completed) {
-    const { error } = await sb.from("todos").update({ completed }).eq("id", id);
+async function supabaseToggleTodo(id, completed, completedAt) {
+    const { error } = await sb.from("todos").update({ completed, completed_at: completedAt }).eq("id", id);
     if (error) console.warn("Toggle todo error:", error.message);
 }
 
