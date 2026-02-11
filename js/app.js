@@ -1500,12 +1500,32 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
         }
     }
 
-    await loadTodos();
-    await loadStats();
+    // Load data — errors must not block clock/calendar
+    try {
+        await loadTodos();
+    } catch (err) {
+        console.warn("Failed to load todos:", err);
+    }
+    try {
+        await loadStats();
+    } catch (err) {
+        console.warn("Failed to load stats:", err);
+    }
+
+    // These must always run regardless of data loading
     updateClock();
     setInterval(updateClock, 1000);
-    await renderCalendar();
-    await renderMatrix(); // Always render matrix on init
+
+    try {
+        await renderCalendar();
+    } catch (err) {
+        console.warn("Failed to render calendar:", err);
+    }
+    try {
+        await renderMatrix();
+    } catch (err) {
+        console.warn("Failed to render matrix:", err);
+    }
 
     // Signal that init is done — auth listener can now handle changes
     _appInitialized = true;
