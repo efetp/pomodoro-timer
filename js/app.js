@@ -199,6 +199,10 @@ function updateDisplay() {
     progressRing.style.strokeDashoffset = offset;
     document.title = `${formatTime(remainingSeconds)} — ${isBreak ? "Break" : "Work"} | FocusGrid`;
     document.body.classList.toggle("on-break", isBreak);
+    // Update slider arc to show remaining time
+    if (isRunning) {
+        updateSliderArc(remainingSeconds / 60);
+    }
 }
 
 function setMode(mode) {
@@ -237,9 +241,11 @@ function startTimer() {
     modeButtons.forEach(btn => {
         if (!btn.classList.contains("active")) btn.disabled = true;
     });
-    // Hide slider while running
+    // Hide slider handle while running
     const sh = document.getElementById("slider-handle");
     if (sh) sh.style.display = "none";
+    // Show arc at full before countdown begins
+    updateSliderArc(totalSeconds / 60);
     timerInterval = setInterval(() => {
         remainingSeconds--;
         updateDisplay();
@@ -1136,7 +1142,6 @@ function updateSliderArc(minutes) {
     const dashLen = circumference * fraction;
     arc.style.strokeDasharray = `${dashLen} ${circumference}`;
     arc.style.stroke = currentMode === "custom" ? MODES.custom.color : MODES[currentMode].color;
-    arc.style.display = isRunning ? "none" : "";
 }
 
 function getAngleFromEvent(e, container) {
