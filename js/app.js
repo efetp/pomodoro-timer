@@ -947,14 +947,31 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     const email = document.getElementById("auth-email").value.trim();
     const password = document.getElementById("auth-password").value;
     authError.classList.add("hidden");
+    const authSuccess = document.getElementById("auth-success");
+    if (authSuccess) authSuccess.classList.add("hidden");
+
     try {
         if (authIsSignUp) {
-            await signUpWithEmail(email, password);
+            // Validate password client-side first
+            const pwError = validatePassword(password);
+            if (pwError) throw new Error(pwError);
+
+            const data = await signUpWithEmail(email, password);
+            // If email confirmation is required, show a success message
+            if (data?.user && !data.session) {
+                if (authSuccess) {
+                    authSuccess.textContent = "Account created! Check your email to confirm before signing in.";
+                    authSuccess.classList.remove("hidden");
+                }
+                authForm.reset();
+                return; // Don't close modal — let them read the message
+            }
         } else {
             await signInWithEmail(email, password);
         }
         authModal.classList.add("hidden");
         authForm.reset();
+        if (authSuccess) authSuccess.classList.add("hidden");
     } catch (err) {
         authError.textContent = err.message;
         authError.classList.remove("hidden");

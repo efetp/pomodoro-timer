@@ -1547,6 +1547,21 @@ body.on-break #timer-label {
     display: none;
 }
 
+.auth-success {
+    color: #4ecca3;
+    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+    background: rgba(78, 204, 163, 0.1);
+    border: 1px solid rgba(78, 204, 163, 0.2);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    line-height: 1.4;
+}
+
+.auth-success.hidden {
+    display: none;
+}
+
 .auth-toggle {
     text-align: center;
     margin-top: 1rem;

@@ -60,9 +60,10 @@
                         <input type="email" id="auth-email" placeholder="Email" required>
                     </div>
                     <div class="form-group">
-                        <input type="password" id="auth-password" placeholder="Password" required>
+                        <input type="password" id="auth-password" placeholder="Password (min 8 chars)" required minlength="8">
                     </div>
                     <div id="auth-error" class="auth-error hidden"></div>
+                    <div id="auth-success" class="auth-success hidden"></div>
                     <button type="submit" id="auth-submit-btn" class="submit-task-btn">Sign In</button>
                 </form>
 

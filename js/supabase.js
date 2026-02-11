@@ -45,8 +45,25 @@ async function signUpWithEmail(email, password) {
     if (!sb) {
         throw new Error("Supabase not initialized - running in offline mode");
     }
-    const { error } = await sb.auth.signUp({ email, password });
+    // Validate password strength before sending to Supabase
+    const pwError = validatePassword(password);
+    if (pwError) throw new Error(pwError);
+
+    const { data, error } = await sb.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
     if (error) throw error;
+    // Return data so caller can detect email confirmation requirement
+    return data;
+}
+
+function validatePassword(password) {
+    if (password.length < 8) return "Password must be at least 8 characters long.";
+    if (!/[0-9]/.test(password)) return "Password must contain at least one number.";
+    if (!/[a-zA-Z]/.test(password)) return "Password must contain at least one letter.";
+    return null;
 }
 
 let _authBusy = false;
@@ -73,7 +90,8 @@ async function signOut() {
 // ============================================================
 
 async function supabaseLoadTodos() {
-    const { data, error } = await sb.from("todos").select("*").order("id", { ascending: true });
+    if (!currentUser) { console.warn("No user logged in"); return []; }
+    const { data, error } = await sb.from("todos").select("*").eq("user_id", currentUser.id).order("id", { ascending: true });
     if (error) { console.warn("Load todos error:", error.message); return []; }
     return data.map(row => ({
         id: row.id,
@@ -136,16 +154,19 @@ async function supabaseLogSession(session) {
 }
 
 async function supabaseLoadSessions() {
-    const { data, error } = await sb.from("sessions").select("*");
+    if (!currentUser) { console.warn("No user logged in"); return []; }
+    const { data, error } = await sb.from("sessions").select("*").eq("user_id", currentUser.id);
     if (error) { console.warn("Load sessions error:", error.message); return []; }
     return data;
 }
 
 async function supabaseGetDeadlineDates() {
+    if (!currentUser) { console.warn("No user logged in"); return []; }
     const { data, error } = await sb.from("todos")
         .select("deadline")
         .neq("deadline", "")
-        .eq("completed", false);
+        .eq("completed", false)
+        .eq("user_id", currentUser.id);
     if (error) { console.warn("Get deadlines error:", error.message); return []; }
     return data.map(r => r.deadline);
 }
