@@ -1098,8 +1098,8 @@ const ringContainer = document.querySelector(".timer-ring-container");
 const breakSelector = document.getElementById("break-selector");
 
 function angleToDuration(angleDeg) {
-    // Map 0–360° to 5–60 min (12 steps of 5 min)
-    // 0° is top (12 o'clock)
+    // Map 0-360 degrees to 5-60 min (12 steps of 5 min)
+    // 0 deg is top (12 o'clock)
     let norm = ((angleDeg % 360) + 360) % 360;
     let minutes = Math.round(norm / 360 * 12) * 5;
     if (minutes === 0) minutes = 60; // full circle = 60
@@ -1107,13 +1107,14 @@ function angleToDuration(angleDeg) {
 }
 
 function durationToAngle(minutes) {
-    // Map 5–60 min to 0–360° (clockwise from top)
+    // Map 5-60 min to 0-360 deg (clockwise from top)
     return ((minutes % 60) / 60) * 360;
 }
 
 function updateSliderHandle() {
     if (!sliderHandle || !ringContainer) return;
-    const angleDeg = durationToAngle(currentMode === "custom" ? customWorkMinutes : MODES[currentMode].work);
+    const workMin = currentMode === "custom" ? customWorkMinutes : MODES[currentMode].work;
+    const angleDeg = durationToAngle(workMin);
     const angleRad = (angleDeg - 90) * (Math.PI / 180); // -90 to start from top
     const containerRect = ringContainer.getBoundingClientRect();
     const cx = containerRect.width / 2;
@@ -1124,6 +1125,19 @@ function updateSliderHandle() {
     sliderHandle.style.left = `${x}px`;
     sliderHandle.style.top = `${y}px`;
     sliderHandle.style.display = isRunning ? "none" : "block";
+    updateSliderArc(workMin);
+}
+
+function updateSliderArc(minutes) {
+    const arc = document.querySelector(".slider-arc");
+    if (!arc) return;
+    const circumference = 2 * Math.PI * 90;
+    // fraction of 60 minutes
+    const fraction = minutes / 60;
+    const dashLen = circumference * fraction;
+    arc.style.strokeDasharray = `${dashLen} ${circumference}`;
+    arc.style.stroke = currentMode === "custom" ? MODES.custom.color : MODES[currentMode].color;
+    arc.style.display = isRunning ? "none" : "";
 }
 
 function getAngleFromEvent(e, container) {
@@ -1133,7 +1147,7 @@ function getAngleFromEvent(e, container) {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     let angle = Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
-    angle = (angle + 90 + 360) % 360; // Normalize so 0° = top
+    angle = (angle + 90 + 360) % 360; // Normalize so 0 deg = top
     return angle;
 }
 
