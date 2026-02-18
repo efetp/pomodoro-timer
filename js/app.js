@@ -27,6 +27,7 @@ let matrixCategory = "university";
 let expandedQuadrants = new Set();
 let cachedTodos = null; // in-memory cache; null means stale/unloaded
 let _todosInflight = null; // dedup concurrent Supabase fetches
+let _cacheGeneration = 0; // incremented on optimistic mutations
 
 // --- DOM Elements ---
 const timerTime = document.getElementById("timer-time");
@@ -525,22 +526,29 @@ function renderTodo(todo) {
     return li;
 }
 
-async function loadTodos() {
+async function loadTodos(forceRefresh = false) {
     let todos;
-    if (cachedTodos !== null) {
+    if (cachedTodos !== null && !forceRefresh) {
         todos = cachedTodos;
     } else {
         // Fresh fetch — only path that hits the network
+        const genBefore = _cacheGeneration;
         if (currentUser) {
             try {
                 if (!_todosInflight) _todosInflight = supabaseLoadTodos();
                 todos = await _todosInflight;
             } catch (e) {
                 console.warn("loadTodos fetch failed:", e);
-                return; // don't cache empty, don't clear DOM
+                if (forceRefresh && cachedTodos !== null) {
+                    todos = cachedTodos; // graceful: use stale data on failure
+                } else {
+                    return; // don't cache empty, don't clear DOM
+                }
             } finally {
                 _todosInflight = null;
             }
+            // If user mutated cache during fetch, don't clobber their changes
+            if (forceRefresh && _cacheGeneration !== genBefore) return;
         } else {
             todos = loadData().todos;
         }
@@ -622,6 +630,7 @@ async function addTodo(formData) {
         if (cachedTodos) {
             // Fast path: cache ready — optimistic push, render instantly
             cachedTodos.push(todo);
+            _cacheGeneration++;
             supabaseAddTodo(todo).catch(() => { cachedTodos = null; loadTodos(); });
         } else {
             // Slow path: cache not ready (init still loading) — must await write
@@ -700,6 +709,7 @@ async function updateTodo(id, formData) {
         if (cachedTodos) {
             const cached = cachedTodos.find(t => t.id === id);
             if (cached) Object.assign(cached, updates);
+            _cacheGeneration++;
             supabaseUpdateTodo(id, updates).catch(() => { cachedTodos = null; loadTodos(); });
         } else {
             await supabaseUpdateTodo(id, updates);
@@ -738,6 +748,7 @@ async function toggleTodo(id, completed) {
     if (cachedTodos) {
         const cached = cachedTodos.find(t => t.id === id);
         if (cached) { cached.completed = completed; cached.completed_at = completedAt; }
+        _cacheGeneration++;
     }
 
     if (currentUser) {
@@ -762,7 +773,10 @@ async function toggleTodo(id, completed) {
 
 async function deleteTodo(id) {
     // Optimistic: remove from cache immediately
-    if (cachedTodos) cachedTodos = cachedTodos.filter(t => t.id !== id);
+    if (cachedTodos) {
+        cachedTodos = cachedTodos.filter(t => t.id !== id);
+        _cacheGeneration++;
+    }
 
     if (currentUser) {
         if (cachedTodos) {
@@ -1574,12 +1588,11 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     _appInitialized = true;
 })();
 
-// When tab regains focus, invalidate cache so the next action fetches fresh.
+// When tab regains focus, background-refresh while keeping stale cache usable.
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && _appInitialized) {
-        cachedTodos = null;
         if (currentUser) {
-            loadTodos().catch(e => console.warn("Visibility refresh:", e));
+            loadTodos(true).catch(e => console.warn("Visibility refresh:", e));
         }
     }
 });
