@@ -380,7 +380,7 @@ function closeModal() {
     courseGroup.classList.remove("hidden");
     document.querySelector('#course-group .form-label').textContent = "Course";
     document.querySelector(".modal-title").textContent = "New Task";
-    document.querySelector(".submit-task-btn").textContent = "Add Task";
+    document.getElementById("btn-submit-todo").textContent = "Add Task";
     setDeadlineValue("");
     closeDatepicker();
 }
@@ -640,7 +640,7 @@ async function editTodo(id) {
     // Open modal and pre-fill with existing values
     openModal();
     document.querySelector(".modal-title").textContent = "Edit Task";
-    document.querySelector(".submit-task-btn").textContent = "Confirm";
+    document.getElementById("btn-submit-todo").textContent = "Confirm";
 
     document.getElementById("todo-name").value = todo.name;
     const hrs = Math.floor(todo.estimated_minutes / 60);
@@ -1407,7 +1407,7 @@ document.querySelectorAll(".duration-arrow").forEach(btn => {
 // Safety net: block native submit if Enter is pressed in a form field
 todoForm.addEventListener("submit", (e) => e.preventDefault());
 
-document.querySelector(".submit-task-btn").addEventListener("click", async () => {
+document.getElementById("btn-submit-todo").addEventListener("click", async () => {
     const name = document.getElementById("todo-name").value.trim();
     const hours = parseInt(document.getElementById("todo-hours").value) || 0;
     const mins = parseInt(document.getElementById("todo-minutes").value) || 0;
