@@ -1252,13 +1252,20 @@ main {
 
 .todo-actions {
     display: flex;
-    gap: 0.1rem;
-    opacity: 0;
-    transition: opacity 0.2s;
+    align-items: center;
+    gap: 0.25rem;
     flex-shrink: 0;
 }
 
-.todo-item:hover .todo-actions {
+/* Edit and delete stay hover-only */
+.todo-actions .edit-btn,
+.todo-actions .delete-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.todo-item:hover .todo-actions .edit-btn,
+.todo-item:hover .todo-actions .delete-btn {
     opacity: 1;
 }
 
@@ -1282,12 +1289,50 @@ main {
     color: var(--urgency-upcoming);
 }
 
-.todo-action-btn.select-btn:hover {
-    color: var(--active-color);
-}
-
 .todo-action-btn.delete-btn:hover {
     color: var(--deep);
+}
+
+/* Select button — always visible, styled as pill CTA */
+.todo-action-btn.select-btn {
+    background: rgba(60, 174, 209, 0.1);
+    border: 1px solid rgba(60, 174, 209, 0.2);
+    color: var(--light);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 0.3rem 0.65rem;
+    border-radius: 1rem;
+}
+
+.todo-action-btn.select-btn:hover {
+    background: rgba(60, 174, 209, 0.2);
+    border-color: rgba(60, 174, 209, 0.35);
+    box-shadow: 0 0 10px rgba(60, 174, 209, 0.12);
+}
+
+.todo-action-btn.select-btn.working {
+    background: rgba(60, 174, 209, 0.2);
+    border-color: rgba(60, 174, 209, 0.4);
+    color: var(--light);
+}
+
+.todo-action-btn.select-btn.glow-hint {
+    animation: selectGlow 1s ease;
+}
+
+@keyframes selectGlow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(60, 174, 209, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 14px 4px rgba(60, 174, 209, 0.4);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(60, 174, 209, 0);
+    }
 }
 
 /* ============================================================
@@ -1497,6 +1542,113 @@ main {
 
 .current-task strong {
     color: var(--text);
+}
+
+/* Task Picker Prompt */
+.task-picker {
+    width: 100%;
+    margin-top: 0.75rem;
+    animation: slideDown 0.2s ease;
+}
+
+.task-picker-content {
+    padding: 0.85rem;
+}
+
+.task-picker-message {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 0 0 0.6rem;
+    line-height: 1.4;
+}
+
+.task-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.task-picker-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.task-picker-list {
+    list-style: none;
+    max-height: 180px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.task-picker-item {
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.task-picker-item:hover {
+    background: rgba(60, 174, 209, 0.1);
+    border-color: rgba(60, 174, 209, 0.2);
+}
+
+.task-picker-item-name {
+    font-size: 0.8rem;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-picker-item-tag {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.task-picker-empty {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.task-picker-skip {
+    width: 100%;
+    padding: 0.45rem;
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.45rem;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+}
+
+.task-picker-skip:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 /* Break duration selector */

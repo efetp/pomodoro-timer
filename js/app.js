@@ -250,8 +250,19 @@ function updateModeInfo() {
     el.textContent = `${workMin} min work / ${breakMin} min rest`;
 }
 
+let _skipTaskPicker = false;
+
 function startTimer() {
     if (isRunning) return;
+
+    // Show task picker if no task selected and not on break
+    if (!selectedTodoId && !isBreak && !_skipTaskPicker) {
+        showTaskPicker();
+        return;
+    }
+    _skipTaskPicker = false;
+    hideTaskPicker();
+
     isRunning = true;
     btnStart.disabled = true;
     btnPause.disabled = false;
@@ -273,6 +284,24 @@ function startTimer() {
             onTimerComplete();
         }
     }, 1000);
+}
+
+function showTaskPicker() {
+    const picker = document.getElementById("task-picker");
+    picker.classList.remove("hidden");
+
+    // Pulse-glow all Select buttons to draw attention
+    document.querySelectorAll(".todo-action-btn.select-btn").forEach(btn => {
+        btn.classList.remove("glow-hint");
+        void btn.offsetWidth; // force reflow to restart animation
+        btn.classList.add("glow-hint");
+        btn.addEventListener("animationend", () => btn.classList.remove("glow-hint"), { once: true });
+    });
+}
+
+function hideTaskPicker() {
+    const picker = document.getElementById("task-picker");
+    if (picker) picker.classList.add("hidden");
 }
 
 function pauseTimer() {
@@ -342,7 +371,7 @@ async function onTimerComplete() {
 async function logSession() {
     const taskName = selectedTodoId
         ? document.querySelector(`[data-id="${selectedTodoId}"] .todo-name`)?.textContent || "Unnamed"
-        : "No task selected";
+        : null;
 
     const session = {
         mode: currentMode,
@@ -818,17 +847,31 @@ async function deleteTodo(id) {
 }
 
 function selectTodo(id, name) {
+    // Toggle off if clicking the already-selected task
+    if (selectedTodoId === id) {
+        const curr = todoList.querySelector(`[data-id="${id}"] .select-btn`);
+        if (curr) { curr.textContent = "Select"; curr.classList.remove("working"); }
+        selectedTodoId = null;
+        currentTaskDiv.classList.add("hidden");
+        return;
+    }
     // Flip the previously-selected task's button back to "Select"
-    if (selectedTodoId && selectedTodoId !== id) {
+    if (selectedTodoId) {
         const prev = todoList.querySelector(`[data-id="${selectedTodoId}"] .select-btn`);
-        if (prev) prev.textContent = "Select";
+        if (prev) { prev.textContent = "Select"; prev.classList.remove("working"); }
     }
     selectedTodoId = id;
     currentTaskName.textContent = name;
     currentTaskDiv.classList.remove("hidden");
     // Mark the newly-selected task's button as "Working"
     const curr = todoList.querySelector(`[data-id="${id}"] .select-btn`);
-    if (curr) curr.textContent = "Working";
+    if (curr) { curr.textContent = "Working"; curr.classList.add("working"); }
+
+    // If the task picker prompt is open, auto-start the timer
+    const picker = document.getElementById("task-picker");
+    if (picker && !picker.classList.contains("hidden")) {
+        startTimer();
+    }
 }
 
 // ============================================================
@@ -1173,6 +1216,12 @@ btnPause.addEventListener("click", pauseTimer);
 btnReset.addEventListener("click", resetTimer);
 modeButtons.forEach(btn => {
     btn.addEventListener("click", () => setMode(btn.dataset.mode));
+});
+
+// Task picker prompt button
+document.getElementById("btn-skip-task").addEventListener("click", () => {
+    _skipTaskPicker = true;
+    startTimer();
 });
 
 // ============================================================
@@ -1727,9 +1776,9 @@ function renderWeeklyOverview(sessions, todos, range) {
     const splitDesc = splitParts.join(" / ") || "\u2014";
 
     const cards = [
-        { label: "Focus Time",       value: `${focusHours}h`, sub: `${totalMins} min total` },
-        { label: "Sessions",         value: sessions.length === 0 ? "\u2014" : String(sessions.length), sub: splitDesc },
-        { label: "Tasks Completed",  value: String(completedThisWeek), sub: "this week" },
+        { label: "Focus Time", value: `${focusHours}h`, sub: `${totalMins} min total` },
+        { label: "Sessions", value: sessions.length === 0 ? "\u2014" : String(sessions.length), sub: splitDesc },
+        { label: "Tasks Completed", value: String(completedThisWeek), sub: "this week" },
         {
             label: "Completion Rate",
             value: completionRate !== null ? `${completionRate}%` : "\u2014",
@@ -1754,21 +1803,22 @@ function renderWeeklyOverview(sessions, todos, range) {
 
 function renderTimeAllocation(sessions, todos) {
     const todoByName = new Map(todos.map(t => [t.name, t]));
-    const buckets = { university: 0, career: 0, other: 0, unassigned: 0 };
+    const buckets = { university: 0, career: 0, other: 0 };
 
     for (const s of sessions) {
+        if (!s.task || s.task === "No task selected") continue; // skip unlinked sessions
         const todo = todoByName.get(s.task);
-        const cat = todo?.category ?? "unassigned";
-        const key = Object.prototype.hasOwnProperty.call(buckets, cat) ? cat : "unassigned";
+        const cat = todo?.category ?? "other";
+        const key = Object.prototype.hasOwnProperty.call(buckets, cat) ? cat : "other";
         buckets[key] += s.work_minutes || 0;
     }
 
     const max = Math.max(...Object.values(buckets), 1);
-    const colors  = { university: "var(--light)", career: "var(--medium)", other: "#a78bfa", unassigned: "rgba(255,255,255,0.2)" };
-    const labels  = { university: "University",   career: "Career",        other: "Other",   unassigned: "Unassigned" };
+    const colors = { university: "var(--light)", career: "var(--medium)", other: "#a78bfa" };
+    const labels = { university: "University", career: "Career", other: "Other" };
 
     const rows = Object.entries(buckets)
-        .filter(([k, v]) => k !== "unassigned" || v > 0)
+        .filter(([k, v]) => v > 0)
         .map(([key, mins]) => {
             const hrs = (mins / 60).toFixed(1);
             const pct = Math.round(mins / max * 100);
@@ -1793,32 +1843,32 @@ function renderQuadrantReality(sessions, todos) {
     const todoByName = new Map(todos.map(t => [t.name, t]));
 
     function getQuadrant(todo) {
-        if (!todo) return "unassigned";
+        if (!todo) return null;
         const p = todo.priority || "low";
-        const u = todo.urgency  || "flexible";
+        const u = todo.urgency || "flexible";
         if (p === "high" && u === "critical") return "do";
         if (p === "high" && u === "flexible") return "schedule";
-        if (p === "low"  && u === "critical") return "delegate";
+        if (p === "low" && u === "critical") return "delegate";
         return "delete";
     }
 
-    const buckets = { do: 0, schedule: 0, delegate: 0, delete: 0, unassigned: 0 };
+    const buckets = { do: 0, schedule: 0, delegate: 0, delete: 0 };
     for (const s of sessions) {
+        if (!s.task || s.task === "No task selected") continue; // skip unlinked sessions
         const q = getQuadrant(todoByName.get(s.task));
+        if (!q) continue; // task not found in current todos
         buckets[q] += s.work_minutes || 0;
     }
 
     const max = Math.max(...Object.values(buckets), 1);
     const meta = {
-        do:         { title: "Do",        sub: "Urgent & Important" },
-        schedule:   { title: "Schedule",  sub: "Not Urgent & Important" },
-        delegate:   { title: "Delegate",  sub: "Urgent & Not Important" },
-        delete:     { title: "Eliminate", sub: "Not Urgent & Not Important" },
-        unassigned: { title: "Unassigned", sub: "No task selected" },
+        do: { title: "Do", sub: "Urgent & Important" },
+        schedule: { title: "Schedule", sub: "Not Urgent & Important" },
+        delegate: { title: "Delegate", sub: "Urgent & Not Important" },
+        delete: { title: "Eliminate", sub: "Not Urgent & Not Important" },
     };
 
     const tiles = Object.entries(buckets)
-        .filter(([k, v]) => k !== "unassigned" || v > 0)
         .map(([key, mins]) => {
             const hrs = (mins / 60).toFixed(1);
             const pct = Math.round(mins / max * 100);
