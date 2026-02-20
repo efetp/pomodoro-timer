@@ -378,7 +378,7 @@ async function logSession() {
         task: taskName,
         work_minutes: MODES[currentMode].work,
         completed_at: new Date().toISOString(),
-        date: new Date().toISOString().split("T")[0],
+        date: new Date().toLocaleDateString('en-CA'),
     };
 
     if (currentUser) {
@@ -412,7 +412,7 @@ async function loadStats() {
         sessions = loadData().sessions;
         cachedSessions = sessions;
     }
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString('en-CA');
     const todaySessions = sessions.filter(s => s.date === today);
     const totalMins = todaySessions.reduce((sum, s) => sum + (s.work_minutes || 0), 0);
     const count = todaySessions.length;
@@ -1756,7 +1756,6 @@ document.getElementById("week-next").addEventListener("click", () => {
 
 function renderWeeklyOverview(sessions, todos, range) {
     const totalMins = sessions.reduce((s, x) => s + (x.work_minutes || 0), 0);
-    const focusHours = (totalMins / 60).toFixed(1);
 
     const deepCount = sessions.filter(s => s.mode === "deep").length;
     const lightCount = sessions.filter(s => s.mode === "light").length;
@@ -1776,7 +1775,7 @@ function renderWeeklyOverview(sessions, todos, range) {
     const splitDesc = splitParts.join(" / ") || "\u2014";
 
     const cards = [
-        { label: "Focus Time", value: `${focusHours}h`, sub: `${totalMins} min total` },
+        { label: "Focus Time", value: formatDuration(totalMins), sub: `across ${sessions.length} session${sessions.length !== 1 ? "s" : ""}` },
         { label: "Sessions", value: sessions.length === 0 ? "\u2014" : String(sessions.length), sub: splitDesc },
         { label: "Tasks Completed", value: String(completedThisWeek), sub: "this week" },
         {
@@ -1801,6 +1800,13 @@ function renderWeeklyOverview(sessions, todos, range) {
 // INSIGHTS — SECTION 2: TIME ALLOCATION
 // ============================================================
 
+function formatDuration(mins) {
+    if (mins < 60) return `${mins}m`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 function renderTimeAllocation(sessions, todos) {
     const todoByName = new Map(todos.map(t => [t.name, t]));
     const buckets = { university: 0, career: 0, other: 0 };
@@ -1820,14 +1826,13 @@ function renderTimeAllocation(sessions, todos) {
     const rows = Object.entries(buckets)
         .filter(([k, v]) => v > 0)
         .map(([key, mins]) => {
-            const hrs = (mins / 60).toFixed(1);
             const pct = Math.round(mins / max * 100);
             return `<div class="alloc-row">
                 <div class="alloc-label">${labels[key]}</div>
                 <div class="alloc-track">
                     <div class="alloc-fill" style="width:${pct}%;background:${colors[key]}"></div>
                 </div>
-                <div class="alloc-value">${hrs}h</div>
+                <div class="alloc-value">${formatDuration(mins)}</div>
             </div>`;
         }).join("");
 
@@ -1870,12 +1875,11 @@ function renderQuadrantReality(sessions, todos) {
 
     const tiles = Object.entries(buckets)
         .map(([key, mins]) => {
-            const hrs = (mins / 60).toFixed(1);
             const pct = Math.round(mins / max * 100);
             return `<div class="qr-tile" data-q="${key}">
                 <div class="qr-title">${meta[key].title}</div>
                 <div class="qr-subtitle">${meta[key].sub}</div>
-                <div class="qr-value">${hrs}h</div>
+                <div class="qr-value">${formatDuration(mins)}</div>
                 <div class="qr-track"><div class="qr-fill" style="width:${pct}%"></div></div>
             </div>`;
         }).join("");
