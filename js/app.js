@@ -1776,7 +1776,7 @@ function renderWeeklyOverview(sessions, todos, range) {
 
     const cards = [
         { label: "Focus Time", value: formatDuration(totalMins), sub: `across ${sessions.length} session${sessions.length !== 1 ? "s" : ""}` },
-        { label: "Sessions", value: sessions.length === 0 ? "\u2014" : String(sessions.length), sub: splitDesc },
+        { label: "Sessions", value: String(sessions.length), sub: sessions.length === 0 ? "this week" : splitDesc },
         { label: "Tasks Completed", value: String(completedThisWeek), sub: "this week" },
         {
             label: "Completion Rate",
