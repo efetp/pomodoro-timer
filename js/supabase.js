@@ -1,5 +1,5 @@
 // ============================================================
-// FocusGrid — Supabase Integration Layer
+// Deeply — Supabase Integration Layer
 // ============================================================
 
 // TODO: Replace these with your Supabase project credentials

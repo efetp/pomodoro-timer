@@ -1,5 +1,5 @@
 // ============================================================
-// FocusGrid — Static Version (localStorage)
+// Deeply — Static Version (localStorage)
 // ============================================================
 
 const MODES = {
@@ -205,7 +205,7 @@ function updateDisplay() {
     const offset = RING_CIRCUMFERENCE * (1 - progress);
     progressRing.style.strokeDasharray = RING_CIRCUMFERENCE;
     progressRing.style.strokeDashoffset = offset;
-    document.title = `${formatTime(remainingSeconds)} — ${isBreak ? "Break" : "Work"} | FocusGrid`;
+    document.title = `${formatTime(remainingSeconds)} — ${isBreak ? "Break" : "Work"} | Deeply`;
     document.body.classList.toggle("on-break", isBreak);
     // Update slider arc to show remaining time
     if (isRunning) {
@@ -917,7 +917,7 @@ function importData(file) {
                 await loadStats();
             }
         } catch {
-            alert("Invalid file format. Please select a valid FocusGrid export file.");
+            alert("Invalid file format. Please select a valid Deeply export file.");
         }
     };
     reader.readAsText(file);
