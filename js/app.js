@@ -1321,15 +1321,20 @@ function updateSliderArc(minutes) {
     if (!arc) return;
     const circumference = 2 * Math.PI * 90;
     const dashLen = circumference * (minutes / 60);
-    arc.style.strokeDasharray = `${dashLen} ${circumference}`;
     arc.style.stroke = currentMode === "custom" ? MODES.custom.color : MODES[currentMode].color;
     if (isRunning) {
-        // Advance arc start to the elapsed position so the counted-down region stays clear.
-        // Negative offset shifts the dash start clockwise; the arc end stays fixed at the
-        // set-duration mark regardless of how much time has elapsed.
+        // Keep the arc end fixed at the set-duration mark while advancing the start
+        // to the elapsed position, so the already-counted region stays clear.
+        //
+        // The key: gap must be (C - dashLen) so period = C exactly. Then:
+        //   offset = C - elapsedLen  →  arc starts at elapsedLen, ends at setDurationLen.
+        // (If gap = C the period is dashLen+C ≠ C, which misplaces the arc.)
         const elapsedMinutes = totalSeconds / 60 - minutes;
-        arc.style.strokeDashoffset = String(-(circumference * elapsedMinutes / 60));
+        const elapsedLen = circumference * elapsedMinutes / 60;
+        arc.style.strokeDasharray = `${dashLen} ${circumference - dashLen}`;
+        arc.style.strokeDashoffset = String(circumference - elapsedLen);
     } else {
+        arc.style.strokeDasharray = `${dashLen} ${circumference}`;
         arc.style.strokeDashoffset = "0";
     }
 }
