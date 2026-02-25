@@ -322,7 +322,14 @@
                     </div>
 
                     <div id="current-task" class="current-task hidden">
-                        Working on: <strong id="current-task-name"></strong>
+                        <span class="current-task-label">Working on</span>
+                        <strong id="current-task-name"></strong>
+                        <div id="task-time-progress" class="task-time-progress hidden">
+                            <div class="task-time-bar">
+                                <div class="task-time-bar-fill" id="task-time-bar-fill"></div>
+                            </div>
+                            <div class="task-time-stats" id="task-time-stats"></div>
+                        </div>
                     </div>
 
                     <!-- Task Picker Prompt (shown when starting without a task) -->

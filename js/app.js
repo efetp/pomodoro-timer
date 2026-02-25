@@ -405,6 +405,7 @@ async function logSession() {
     }
     cachedSessions = null; // invalidate so next stats/insights load sees fresh data
     await loadStats();
+    updateTaskTimeDisplay();
 }
 
 async function loadStats() {
@@ -482,14 +483,6 @@ function setCategory(category) {
 // TODO LIST (localStorage)
 // ============================================================
 
-function calcPomodoros(minutes) {
-    return {
-        light: Math.ceil(minutes / MODES.light.work),
-        deep: Math.ceil(minutes / MODES.deep.work),
-        custom: Math.ceil(minutes / (MODES.custom.work || 25)),
-    };
-}
-
 function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
@@ -516,7 +509,6 @@ function formatDeadline(dateStr) {
 
 function renderTodo(todo) {
     const minutes = todo.estimated_minutes;
-    const pomos = calcPomodoros(minutes);
     const isSelected = todo.id === selectedTodoId;
     const hrs = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -555,10 +547,6 @@ function renderTodo(todo) {
             <div class="todo-name ${todo.completed ? "completed" : ""}">${escapeHtml(todo.name)}</div>
             <div class="todo-tags">${tagsHtml}</div>
             <div class="todo-meta">${timeStr} estimated</div>
-            <div class="todo-pomodoros">
-                <span class="pomo-badge light"><span class="pomo-count">${pomos.light}</span><span class="pomo-label"> light</span></span>
-                <span class="pomo-badge deep"><span class="pomo-count">${pomos.deep}</span><span class="pomo-label"> deep</span></span>
-            </div>
         </div>
         ${deadlineHtml}
         <div class="todo-actions">
@@ -882,6 +870,59 @@ function selectTodo(id, name) {
     const picker = document.getElementById("task-picker");
     if (picker && !picker.classList.contains("hidden")) {
         startTimer();
+    }
+    updateTaskTimeDisplay();
+}
+
+async function loadSessionsForTask(taskName) {
+    if (currentUser) {
+        let sessions;
+        if (cachedSessions !== null) {
+            sessions = cachedSessions;
+        } else {
+            try {
+                sessions = await supabaseLoadSessions();
+                cachedSessions = sessions;
+            } catch (e) {
+                console.warn("loadSessionsForTask fetch failed:", e);
+                return [];
+            }
+        }
+        return sessions.filter(s => s.task === taskName);
+    } else {
+        const data = loadData();
+        return (data.sessions || []).filter(s => s.task === taskName);
+    }
+}
+
+async function updateTaskTimeDisplay() {
+    const progress = document.getElementById("task-time-progress");
+    const fill = document.getElementById("task-time-bar-fill");
+    const stats = document.getElementById("task-time-stats");
+    if (!progress || !selectedTodoId) return;
+
+    const todos = cachedTodos || [];
+    const task = todos.find(t => t.id === selectedTodoId);
+    if (!task) return;
+
+    const allSessions = await loadSessionsForTask(task.name);
+    const spentMinutes = allSessions.reduce((sum, s) => sum + (s.work_minutes || 0), 0);
+
+    if (spentMinutes === 0 && !task.estimated_minutes) {
+        progress.classList.add("hidden");
+        return;
+    }
+
+    progress.classList.remove("hidden");
+
+    if (task.estimated_minutes) {
+        const pct = Math.min(100, (spentMinutes / task.estimated_minutes) * 100);
+        fill.style.width = pct + "%";
+        const remaining = Math.max(0, task.estimated_minutes - spentMinutes);
+        stats.textContent = `${formatDuration(spentMinutes)} spent · ${formatDuration(remaining)} left`;
+    } else {
+        fill.style.width = "0%";
+        stats.textContent = `${formatDuration(spentMinutes)} spent`;
     }
 }
 

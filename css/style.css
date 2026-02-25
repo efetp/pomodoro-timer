@@ -1544,6 +1544,32 @@ main {
     color: var(--text);
 }
 
+.task-time-progress {
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.task-time-bar {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+}
+
+.task-time-bar-fill {
+    height: 100%;
+    background: var(--light);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.task-time-stats {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+}
+
 /* Task Picker Prompt */
 .task-picker {
     width: 100%;
