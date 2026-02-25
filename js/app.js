@@ -15,6 +15,8 @@ let remainingSeconds = totalSeconds;
 let timerInterval = null;
 let isRunning = false;
 let isBreak = false;
+let timerStartedAt = null;
+let timerSecondsAtStart = 0;
 let selectedTodoId = null;
 let customWorkMinutes = 25;
 let customBreakMinutes = 5;
@@ -264,6 +266,8 @@ function startTimer() {
     hideTaskPicker();
 
     isRunning = true;
+    timerStartedAt = Date.now();
+    timerSecondsAtStart = remainingSeconds;
     btnStart.disabled = true;
     btnPause.disabled = false;
     modeButtons.forEach(btn => {
@@ -275,12 +279,14 @@ function startTimer() {
     // Show arc at full before countdown begins
     updateSliderArc(totalSeconds / 60);
     timerInterval = setInterval(() => {
-        remainingSeconds--;
+        const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
+        remainingSeconds = Math.max(0, timerSecondsAtStart - elapsed);
         updateDisplay();
         if (remainingSeconds <= 0) {
             clearInterval(timerInterval);
             timerInterval = null;
             isRunning = false;
+            timerStartedAt = null;
             onTimerComplete();
         }
     }, 1000);
@@ -306,7 +312,12 @@ function hideTaskPicker() {
 
 function pauseTimer() {
     if (!isRunning) return;
+    if (timerStartedAt !== null) {
+        const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
+        remainingSeconds = Math.max(0, timerSecondsAtStart - elapsed);
+    }
     isRunning = false;
+    timerStartedAt = null;
     clearInterval(timerInterval);
     timerInterval = null;
     btnStart.disabled = false;
@@ -1888,10 +1899,22 @@ function renderQuadrantReality(sessions, todos) {
         `<p style="color:var(--text-muted);font-size:0.8rem;margin:0">No focus sessions this week</p>`;
 }
 
-// When tab regains focus, background-refresh while keeping stale cache usable.
+// When tab regains focus, sync timer and background-refresh todos.
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && _appInitialized) {
-        if (currentUser) {
+    if (document.visibilityState === "visible") {
+        if (isRunning && timerStartedAt !== null) {
+            const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
+            remainingSeconds = Math.max(0, timerSecondsAtStart - elapsed);
+            updateDisplay();
+            if (remainingSeconds <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                isRunning = false;
+                timerStartedAt = null;
+                onTimerComplete();
+            }
+        }
+        if (_appInitialized && currentUser) {
             loadTodos(true).catch(e => console.warn("Visibility refresh:", e));
         }
     }
