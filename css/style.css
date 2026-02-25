@@ -1460,7 +1460,7 @@ main {
     stroke-width: 4;
     stroke-linecap: round;
     stroke-dasharray: 565;
-    stroke-dashoffset: 0;
+    stroke-dashoffset: 565;
     transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
 }
 

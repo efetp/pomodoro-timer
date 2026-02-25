@@ -203,10 +203,6 @@ function formatTime(seconds) {
 function updateDisplay() {
     timerTime.textContent = formatTime(remainingSeconds);
     timerLabel.textContent = isBreak ? "BREAK" : "WORK";
-    const progress = 1 - (remainingSeconds / totalSeconds);
-    const offset = RING_CIRCUMFERENCE * (1 - progress);
-    progressRing.style.strokeDasharray = RING_CIRCUMFERENCE;
-    progressRing.style.strokeDashoffset = offset;
     document.title = `${formatTime(remainingSeconds)} — ${isBreak ? "Break" : "Work"} | Deeply`;
     document.body.classList.toggle("on-break", isBreak);
     // Update slider arc to show remaining time
@@ -1321,22 +1317,9 @@ function updateSliderArc(minutes) {
     if (!arc) return;
     const circumference = 2 * Math.PI * 90;
     const dashLen = circumference * (minutes / 60);
+    arc.style.strokeDasharray = `${dashLen} ${circumference}`;
+    arc.style.strokeDashoffset = "0";
     arc.style.stroke = currentMode === "custom" ? MODES.custom.color : MODES[currentMode].color;
-    if (isRunning) {
-        // Keep the arc end fixed at the set-duration mark while advancing the start
-        // to the elapsed position, so the already-counted region stays clear.
-        //
-        // The key: gap must be (C - dashLen) so period = C exactly. Then:
-        //   offset = C - elapsedLen  →  arc starts at elapsedLen, ends at setDurationLen.
-        // (If gap = C the period is dashLen+C ≠ C, which misplaces the arc.)
-        const elapsedMinutes = totalSeconds / 60 - minutes;
-        const elapsedLen = circumference * elapsedMinutes / 60;
-        arc.style.strokeDasharray = `${dashLen} ${circumference - dashLen}`;
-        arc.style.strokeDashoffset = String(circumference - elapsedLen);
-    } else {
-        arc.style.strokeDasharray = `${dashLen} ${circumference}`;
-        arc.style.strokeDashoffset = "0";
-    }
 }
 
 function getAngleFromEvent(e, container) {
