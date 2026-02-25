@@ -1320,11 +1320,18 @@ function updateSliderArc(minutes) {
     const arc = document.querySelector(".slider-arc");
     if (!arc) return;
     const circumference = 2 * Math.PI * 90;
-    // fraction of 60 minutes
-    const fraction = minutes / 60;
-    const dashLen = circumference * fraction;
+    const dashLen = circumference * (minutes / 60);
     arc.style.strokeDasharray = `${dashLen} ${circumference}`;
     arc.style.stroke = currentMode === "custom" ? MODES.custom.color : MODES[currentMode].color;
+    if (isRunning) {
+        // Advance arc start to the elapsed position so the counted-down region stays clear.
+        // Negative offset shifts the dash start clockwise; the arc end stays fixed at the
+        // set-duration mark regardless of how much time has elapsed.
+        const elapsedMinutes = totalSeconds / 60 - minutes;
+        arc.style.strokeDashoffset = String(-(circumference * elapsedMinutes / 60));
+    } else {
+        arc.style.strokeDashoffset = "0";
+    }
 }
 
 function getAngleFromEvent(e, container) {
@@ -1722,6 +1729,9 @@ function showPanel(name) {
         t.classList.toggle("active", t.dataset.panel === name)
     );
     if (name === "insights") loadInsights();
+    // Re-position handle after the focus panel becomes visible; getBoundingClientRect()
+    // returns zero while the panel is hidden, so we must wait for layout to settle.
+    if (name === "focus") requestAnimationFrame(updateSliderHandle);
 }
 
 document.querySelectorAll(".main-tab").forEach(btn => {
@@ -1955,6 +1965,9 @@ document.addEventListener("visibilitychange", () => {
                 onTimerComplete();
             }
         }
+        // Re-position handle after tab regains visibility; on mobile the browser may
+        // have changed layout dimensions while the tab was hidden.
+        requestAnimationFrame(updateSliderHandle);
         if (_appInitialized && currentUser) {
             loadTodos(true).catch(e => console.warn("Visibility refresh:", e));
         }
