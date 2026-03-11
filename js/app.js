@@ -31,6 +31,28 @@ let cachedTodos = null; // in-memory cache; null means stale/unloaded
 let _todosInflight = null; // dedup concurrent Supabase fetches
 let _cacheGeneration = 0; // incremented on optimistic mutations
 let _activePanel = "focus";
+
+// Inline Web Worker that ticks every second even in background tabs,
+// keeping the document.title countdown accurate.
+const _bgTickWorker = (() => {
+    try {
+        const blob = new Blob([
+            `let id=null;onmessage=e=>{if(e.data==="start"){if(id)return;id=setInterval(()=>postMessage("tick"),1000)}else{clearInterval(id);id=null}}`
+        ], { type: "application/javascript" });
+        const w = new Worker(URL.createObjectURL(blob));
+        w.onmessage = () => {
+            if (!isRunning || timerStartedAt === null) return;
+            const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
+            remainingSeconds = Math.max(0, timerSecondsAtStart - elapsed);
+            // Only update title + arc when hidden (the main setInterval handles visible UI)
+            document.title = `${formatTime(remainingSeconds)} — ${isBreak ? "Break" : "Work"} | Deeply`;
+            if (remainingSeconds <= 0) {
+                w.postMessage("stop");
+            }
+        };
+        return w;
+    } catch (_) { return null; }
+})();
 let insightsWeekOffset = 0;
 let cachedSessions = null; // invalidated after logSession()
 
@@ -274,6 +296,7 @@ function startTimer() {
     if (sh) sh.style.display = "none";
     // Show arc at full before countdown begins
     updateSliderArc(totalSeconds / 60);
+    if (_bgTickWorker) _bgTickWorker.postMessage("start");
     timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
         remainingSeconds = Math.max(0, timerSecondsAtStart - elapsed);
@@ -281,6 +304,7 @@ function startTimer() {
         if (remainingSeconds <= 0) {
             clearInterval(timerInterval);
             timerInterval = null;
+            if (_bgTickWorker) _bgTickWorker.postMessage("stop");
             isRunning = false;
             timerStartedAt = null;
             onTimerComplete();
@@ -316,6 +340,7 @@ function pauseTimer() {
     timerStartedAt = null;
     clearInterval(timerInterval);
     timerInterval = null;
+    if (_bgTickWorker) _bgTickWorker.postMessage("stop");
     btnStart.disabled = false;
     btnPause.disabled = true;
 }
@@ -1309,7 +1334,11 @@ function updateSliderHandle() {
     sliderHandle.style.left = `${x}px`;
     sliderHandle.style.top = `${y}px`;
     sliderHandle.style.display = isRunning ? "none" : "block";
-    updateSliderArc(workMin);
+    // Don't overwrite the countdown arc while the timer is running —
+    // updateDisplay() owns the arc during countdown.
+    if (!isRunning) {
+        updateSliderArc(workMin);
+    }
 }
 
 function updateSliderArc(minutes) {
