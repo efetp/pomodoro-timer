@@ -1076,10 +1076,12 @@ async function renderCalendar() {
     if (selectedCalendarDate) {
         const d = new Date(selectedCalendarDate + "T00:00:00");
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        filterInfo.innerHTML = `Showing tasks due <strong>${monthNames[d.getMonth()]} ${d.getDate()}</strong> <button id="cal-clear-filter" class="cal-clear-btn">&times;</button>`;
+        filterInfo.innerHTML = `Due: <strong>${monthNames[d.getMonth()]} ${d.getDate()}</strong><button id="cal-clear-filter" class="cal-back-btn">Today</button>`;
         filterInfo.classList.remove("hidden");
         document.getElementById("cal-clear-filter").addEventListener("click", async () => {
             selectedCalendarDate = null;
+            calendarMonth = new Date().getMonth();
+            calendarYear = new Date().getFullYear();
             await renderCalendar();
             await loadTodos();
         });
@@ -1147,13 +1149,22 @@ function renderQuadrant(quadrantName, tasks) {
     tasks.forEach((task, index) => {
         const chip = document.createElement("li");
         chip.className = "matrix-task-chip";
+        chip.draggable = true;
+        chip.dataset.taskId = task.id;
         if (index >= 6 && !isExpanded) {
             chip.classList.add("hidden-overflow");
         }
 
         chip.innerHTML = `<span class="task-chip-name">${escapeHtml(task.name)}</span>`;
 
-        // Click to edit task
+        chip.addEventListener("dragstart", e => {
+            e.dataTransfer.setData("text/plain", String(task.id));
+            e.dataTransfer.effectAllowed = "move";
+            chip.classList.add("dragging");
+        });
+        chip.addEventListener("dragend", () => chip.classList.remove("dragging"));
+
+        // Click to edit task (only if not dragging)
         chip.addEventListener("click", () => editTodo(task.id));
 
         container.appendChild(chip);
@@ -1168,6 +1179,78 @@ function renderQuadrant(quadrantName, tasks) {
     } else {
         expandBtn.classList.add("hidden");
     }
+}
+
+// Quadrant name → priority/urgency values
+const QUADRANT_VALUES = {
+    do:       { priority: "high", urgency: "critical" },
+    schedule: { priority: "high", urgency: "flexible" },
+    delegate: { priority: "low",  urgency: "critical" },
+    delete:   { priority: "low",  urgency: "flexible" },
+};
+
+// Tracks the single quadrant currently highlighted during a drag
+let _dragOverQuadrant = null;
+
+function _clearDragHighlight() {
+    if (_dragOverQuadrant) {
+        _dragOverQuadrant.classList.remove("drag-over");
+        _dragOverQuadrant = null;
+    }
+}
+
+function initMatrixDragDrop() {
+    document.querySelectorAll(".quadrant-tasks").forEach(container => {
+        const quadrantEl = container.closest(".matrix-quadrant");
+        const quadrantName = quadrantEl.dataset.quadrant;
+
+        // dragenter: switch highlight to this quadrant only
+        container.addEventListener("dragenter", e => {
+            e.preventDefault();
+            if (_dragOverQuadrant === quadrantEl) return;
+            _clearDragHighlight();
+            _dragOverQuadrant = quadrantEl;
+            quadrantEl.classList.add("drag-over");
+        });
+
+        // dragover: must preventDefault to allow drop, no highlight logic needed
+        container.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+        });
+
+        container.addEventListener("drop", e => {
+            e.preventDefault();
+            _clearDragHighlight();
+
+            const taskId = e.dataTransfer.getData("text/plain");
+            if (!taskId) return;
+
+            const { priority, urgency } = QUADRANT_VALUES[quadrantName];
+
+            const task = cachedTodos && cachedTodos.find(t => String(t.id) === taskId);
+            if (!task) return;
+            if (task.priority === priority && task.urgency === urgency) return;
+
+            const updates = { priority, urgency };
+
+            if (currentUser) {
+                Object.assign(task, updates);
+                _cacheGeneration++;
+                loadTodos();
+                supabaseUpdateTodo(task.id, updates).catch(() => { cachedTodos = null; loadTodos(); });
+            } else {
+                const data = loadData();
+                const local = data.todos.find(t => String(t.id) === taskId);
+                if (local) { Object.assign(local, updates); saveData(data); }
+                Object.assign(task, updates);
+                loadTodos();
+            }
+        });
+    });
+
+    // dragend fires on the chip when drag ends (drop, cancel, or Escape) — always clean up
+    document.addEventListener("dragend", _clearDragHighlight);
 }
 
 // ============================================================
@@ -1619,6 +1702,18 @@ importFile.addEventListener("change", (e) => {
 // AUTH MODAL HANDLERS
 // ============================================================
 
+// Matrix info modal
+const matrixInfoModal = document.getElementById("matrix-info-modal");
+document.getElementById("btn-matrix-info").addEventListener("click", () => {
+    matrixInfoModal.classList.remove("hidden");
+});
+document.getElementById("btn-close-matrix-info").addEventListener("click", () => {
+    matrixInfoModal.classList.add("hidden");
+});
+matrixInfoModal.addEventListener("click", e => {
+    if (e.target === matrixInfoModal) matrixInfoModal.classList.add("hidden");
+});
+
 const authModal = document.getElementById("auth-modal");
 const btnSignIn = document.getElementById("btn-sign-in");
 const btnCloseAuth = document.getElementById("btn-close-auth");
@@ -1640,9 +1735,7 @@ if (btnCloseAuth) btnCloseAuth.addEventListener("click", () => {
 
 if (btnSignOut) btnSignOut.addEventListener("click", async () => {
     await signOut();
-    await loadTodos();
-    await loadStats();
-    await renderCalendar();
+    window.location.reload();
 });
 
 if (btnGoogleSignin) btnGoogleSignin.addEventListener("click", () => {
@@ -1729,6 +1822,7 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     // Calendar + matrix use cachedTodos so they must run after loadTodos
     renderCalendar();
     renderMatrix();
+    initMatrixDragDrop();
 
     // Signal that init is done — auth listener can now handle changes
     _appInitialized = true;

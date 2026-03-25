@@ -963,6 +963,19 @@ main {
     border-color: rgba(60, 174, 209, 0.2);
 }
 
+.matrix-task-chip[draggable="true"] {
+    cursor: grab;
+}
+
+.matrix-task-chip.dragging {
+    opacity: 0.4;
+}
+
+.matrix-quadrant.drag-over {
+    border-color: rgba(60, 174, 209, 0.5);
+    background: rgba(60, 174, 209, 0.06);
+}
+
 .matrix-task-chip.hidden-overflow {
     display: none;
 }
@@ -1760,6 +1773,113 @@ main {
     text-align: center;
 }
 
+/* Matrix title clickable hint */
+.matrix-title-btn {
+    cursor: pointer;
+    user-select: none;
+    display: inline;
+}
+
+.matrix-info-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.35);
+    margin-left: 0.4rem;
+    vertical-align: middle;
+    transition: border-color 0.2s, color 0.2s;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.matrix-title-btn:hover .matrix-info-hint {
+    border-color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Matrix info modal body */
+.matrix-info-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.matrix-info-lead {
+    font-size: 0.82rem;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.matrix-info-text {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.matrix-info-text strong {
+    color: var(--text);
+    font-weight: 500;
+}
+
+.matrix-info-quadrants {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+.matrix-info-q {
+    border-radius: 0.6rem;
+    padding: 0.75rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.matrix-info-q p {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 0.2rem 0 0;
+}
+
+.miq-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.miq-sub {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.miq-do    { border-left: 3px solid rgba(231, 76, 60, 0.5); }
+.miq-schedule { border-left: 3px solid rgba(60, 174, 209, 0.5); }
+.miq-delegate { border-left: 3px solid rgba(240, 165, 0, 0.5); }
+.miq-delete   { border-left: 3px solid rgba(154, 154, 176, 0.4); }
+
+.matrix-info-tip {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+    margin: 0;
+    text-align: center;
+    font-style: italic;
+}
+
 /* Clock */
 .clock-container {
     text-align: center;
@@ -1935,19 +2055,23 @@ main {
     color: var(--light);
 }
 
-.cal-clear-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1rem;
+.cal-back-btn {
+    background: rgba(60, 174, 209, 0.1);
+    border: 1px solid rgba(60, 174, 209, 0.25);
+    border-radius: 0.3rem;
+    color: var(--light);
+    font-size: 0.68rem;
+    font-weight: 500;
     cursor: pointer;
-    padding: 0 0.2rem;
-    line-height: 1;
-    transition: color 0.2s;
+    padding: 0.2rem 0.5rem;
+    margin-left: 0.6rem;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
 }
 
-.cal-clear-btn:hover {
-    color: var(--text);
+.cal-back-btn:hover {
+    background: rgba(60, 174, 209, 0.2);
+    border-color: rgba(60, 174, 209, 0.45);
 }
 
 /* === Flash Overlay === */
