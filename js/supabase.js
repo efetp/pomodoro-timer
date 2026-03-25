@@ -220,6 +220,29 @@ async function supabaseGetDeadlineDates() {
 }
 
 // ============================================================
+// USER SETTINGS (courses)
+// ============================================================
+
+async function supabaseLoadCourses() {
+    if (!currentUser) return null;
+    const { data, error } = await withTimeout(
+        sb.from("user_settings").select("courses").eq("user_id", currentUser.id).maybeSingle(),
+        8000
+    );
+    if (error) { console.warn("Load courses error:", error.message); return null; }
+    return data ? data.courses : { university: [], career: [], other: [] };
+}
+
+async function supabaseSaveCourses(courses) {
+    if (!currentUser) return;
+    const { error } = await withTimeout(
+        sb.from("user_settings").upsert({ user_id: currentUser.id, courses }, { onConflict: "user_id" }),
+        8000
+    );
+    if (error) console.warn("Save courses error:", error.message);
+}
+
+// ============================================================
 // MIGRATION: localStorage → Supabase
 // ============================================================
 
@@ -282,7 +305,9 @@ if (sb) sb.auth.onAuthStateChange(async (event, session) => {
         if (_appInitialized && event === "SIGNED_IN") {
             cachedTodos = null;
             cachedSessions = null;
+            cachedCourses = null;
             await migrateLocalStorageToSupabase(currentUser.id);
+            if (typeof initCourses === "function") await initCourses();
             if (typeof loadTodos === "function") await loadTodos();
             if (typeof loadStats === "function") await loadStats();
             if (typeof renderCalendar === "function") await renderCalendar();

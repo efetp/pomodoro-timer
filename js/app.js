@@ -117,16 +117,45 @@ function saveData(data) {
 // COURSE MANAGEMENT
 // ============================================================
 
-function loadCourses(category = "university") {
-    const key = `focusgrid_courses_${category}`;
-    const raw = localStorage.getItem(key);
+// In-memory cache: { university: [], career: [], other: [] }
+let cachedCourses = null;
+
+// Called once on login to populate cache from Supabase
+async function initCourses() {
+    if (currentUser) {
+        const remote = await supabaseLoadCourses();
+        cachedCourses = remote || { university: [], career: [], other: [] };
+    } else {
+        cachedCourses = {
+            university: _localCourses("university"),
+            career:     _localCourses("career"),
+            other:      _localCourses("other"),
+        };
+    }
+}
+
+function _localCourses(category) {
+    const raw = localStorage.getItem(`focusgrid_courses_${category}`);
     if (!raw) return [];
     try { return JSON.parse(raw); } catch { return []; }
 }
 
+function loadCourses(category = "university") {
+    if (cachedCourses) return cachedCourses[category] || [];
+    return _localCourses(category);
+}
+
 function saveCourses(courses, category = "university") {
-    const key = `focusgrid_courses_${category}`;
-    localStorage.setItem(key, JSON.stringify(courses));
+    // Always update cache immediately
+    if (!cachedCourses) cachedCourses = { university: [], career: [], other: [] };
+    cachedCourses[category] = courses;
+
+    if (currentUser) {
+        // Fire-and-forget to Supabase
+        supabaseSaveCourses(cachedCourses).catch(e => console.warn("saveCourses error:", e));
+    } else {
+        localStorage.setItem(`focusgrid_courses_${category}`, JSON.stringify(courses));
+    }
 }
 
 function renderCourseDropdown(category = selectedCategory) {
@@ -1813,8 +1842,9 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     updateClock();
     setInterval(updateClock, 1000);
 
-    // Load todos and stats in parallel — cuts init time in half
+    // Load courses, todos, and stats in parallel
     await Promise.all([
+        initCourses().catch(err => console.warn("Failed to load courses:", err)),
         loadTodos().catch(err => console.warn("Failed to load todos:", err)),
         loadStats().catch(err => console.warn("Failed to load stats:", err)),
     ]);
