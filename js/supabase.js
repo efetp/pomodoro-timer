@@ -293,6 +293,27 @@ async function migrateLocalStorageToSupabase(userId) {
     localStorage.setItem(flag, "1");
 }
 
+async function migrateCoursesToSupabase(userId) {
+    const flag = "focusgrid_courses_migrated_" + userId;
+    if (localStorage.getItem(flag)) return;
+
+    const categories = ["university", "career", "other"];
+    const courses = {};
+    let hasAny = false;
+
+    categories.forEach(cat => {
+        const raw = localStorage.getItem(`focusgrid_courses_${cat}`);
+        try { courses[cat] = raw ? JSON.parse(raw) : []; } catch { courses[cat] = []; }
+        if (courses[cat].length > 0) hasAny = true;
+    });
+
+    if (hasAny) {
+        await supabaseSaveCourses(courses);
+    }
+
+    localStorage.setItem(flag, "1");
+}
+
 // Flag to prevent auth listener from racing with app init
 let _appInitialized = false;
 
@@ -307,6 +328,7 @@ if (sb) sb.auth.onAuthStateChange(async (event, session) => {
             cachedSessions = null;
             cachedCourses = null;
             await migrateLocalStorageToSupabase(currentUser.id);
+            await migrateCoursesToSupabase(currentUser.id);
             if (typeof initCourses === "function") await initCourses();
             if (typeof loadTodos === "function") await loadTodos();
             if (typeof loadStats === "function") await loadStats();
