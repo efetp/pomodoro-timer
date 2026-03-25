@@ -1842,21 +1842,36 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     updateClock();
     setInterval(updateClock, 1000);
 
-    // Load courses, todos, and stats in parallel
+    // Load courses, todos, stats, and theme in parallel
     await Promise.all([
         initCourses().catch(err => console.warn("Failed to load courses:", err)),
         loadTodos().catch(err => console.warn("Failed to load todos:", err)),
         loadStats().catch(err => console.warn("Failed to load stats:", err)),
+        initTheme().catch(err => console.warn("Failed to load theme:", err)),
     ]);
 
     // Calendar + matrix use cachedTodos so they must run after loadTodos
     renderCalendar();
     renderMatrix();
     initMatrixDragDrop();
+    initPlayground();
 
     // Signal that init is done — auth listener can now handle changes
     _appInitialized = true;
 })();
+
+// Load and apply the user's saved theme (Supabase if logged in, else localStorage)
+async function initTheme() {
+    if (currentUser && typeof supabaseLoadTheme === "function") {
+        const saved = await supabaseLoadTheme();
+        if (saved && saved.id) {
+            applyTheme(saved.id, saved.overlay || "balanced", false);
+            return;
+        }
+    }
+    // Guest or no saved theme — try localStorage, else keep default
+    if (typeof loadLocalTheme === "function") loadLocalTheme();
+}
 
 // ============================================================
 // MAIN PANEL SWITCHING (Focus / Insights)

@@ -220,8 +220,30 @@ async function supabaseGetDeadlineDates() {
 }
 
 // ============================================================
-// USER SETTINGS (courses)
+// USER SETTINGS (courses + theme)
 // ============================================================
+
+async function supabaseLoadTheme() {
+    if (!currentUser) return null;
+    const { data, error } = await withTimeout(
+        sb.from("user_settings").select("theme").eq("user_id", currentUser.id).maybeSingle(),
+        8000
+    );
+    if (error) { console.warn("Load theme error:", error.message); return null; }
+    return data ? data.theme : null;
+}
+
+async function supabaseSaveTheme(themeId, overlay) {
+    if (!currentUser) return;
+    const { error } = await withTimeout(
+        sb.from("user_settings").upsert(
+            { user_id: currentUser.id, theme: { id: themeId, overlay } },
+            { onConflict: "user_id" }
+        ),
+        8000
+    );
+    if (error) console.warn("Save theme error:", error.message);
+}
 
 async function supabaseLoadCourses() {
     if (!currentUser) return null;
@@ -330,6 +352,7 @@ if (sb) sb.auth.onAuthStateChange(async (event, session) => {
             await migrateLocalStorageToSupabase(currentUser.id);
             await migrateCoursesToSupabase(currentUser.id);
             if (typeof initCourses === "function") await initCourses();
+            if (typeof initTheme === "function") await initTheme();
             if (typeof loadTodos === "function") await loadTodos();
             if (typeof loadStats === "function") await loadStats();
             if (typeof renderCalendar === "function") await renderCalendar();

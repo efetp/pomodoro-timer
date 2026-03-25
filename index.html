@@ -14,6 +14,62 @@
 </head>
 
 <body>
+    <!-- Theme background layers (sit behind everything) -->
+    <div id="theme-bg"></div>
+    <div id="theme-overlay"></div>
+
+    <!-- Theme Playground (full-screen preview mode) -->
+    <div id="theme-playground" class="theme-playground hidden">
+        <div class="playground-bar">
+            <span class="playground-bar-label">Theme Playground</span>
+            <div class="playground-bar-actions">
+                <button id="btn-playground-discard" class="playground-discard">Discard</button>
+                <button id="btn-playground-apply" class="playground-apply">Apply &amp; Save</button>
+            </div>
+        </div>
+        <div class="playground-panel">
+            <div class="pg-section-label">Theme</div>
+            <div class="playground-theme-grid" id="playground-theme-grid"></div>
+
+            <div class="pg-section-label" style="margin-top:1.1rem">Overlay</div>
+            <div class="playground-overlay-opts">
+                <label class="overlay-opt">
+                    <input type="radio" class="overlay-radio" name="pg-overlay" value="subtle">
+                    <span class="overlay-opt-inner">
+                        <span class="overlay-opt-name">Subtle</span>
+                        <span class="overlay-opt-desc">Image-forward</span>
+                    </span>
+                </label>
+                <label class="overlay-opt">
+                    <input type="radio" class="overlay-radio" name="pg-overlay" value="balanced" checked>
+                    <span class="overlay-opt-inner">
+                        <span class="overlay-opt-name">Balanced</span>
+                        <span class="overlay-opt-desc">Recommended</span>
+                    </span>
+                </label>
+                <label class="overlay-opt">
+                    <input type="radio" class="overlay-radio" name="pg-overlay" value="focused">
+                    <span class="overlay-opt-inner">
+                        <span class="overlay-opt-name">Focused</span>
+                        <span class="overlay-opt-desc">Max readability</span>
+                    </span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme FAB trigger -->
+    <button id="btn-theme-fab" class="theme-fab" title="Customise theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 2.76 1.12 5.26 2.93 7.07C6.74 20.88 9.24 22 12 22c1.1 0 2-.9 2-2v-.5c0-.28.22-.5.5-.5H16a4 4 0 0 0 4-4c0-5.52-3.58-10-8-10z"/>
+            <circle cx="6.5" cy="11.5" r="1" fill="currentColor" stroke="none"/>
+            <circle cx="9.5" cy="7.5"  r="1" fill="currentColor" stroke="none"/>
+            <circle cx="14.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>
+            <circle cx="17.5" cy="11.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+    </button>
+
     <div class="container">
         <!-- Header -->
         <header>
@@ -494,7 +550,19 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase.js"></script>
+    <script src="js/themes.js"></script>
+    <script>
+        // Apply saved theme immediately to avoid flash of default background
+        (function() {
+            const raw = localStorage.getItem('deeply_theme');
+            if (raw) try {
+                const t = JSON.parse(raw);
+                if (t.id) applyTheme(t.id, t.overlay || 'balanced', false);
+            } catch {}
+        })();
+    </script>
     <script src="js/app.js"></script>
+    <script src="js/playground.js"></script>
 </body>
 
 </html>
