@@ -8,6 +8,9 @@ const MODES = {
     custom: { work: 25, break: 5, color: "#a78bfa" },
 };
 
+// Theme engine will overwrite MODES colors via applyTheme() —
+// these defaults are just fallbacks before any theme loads.
+
 // --- State ---
 let currentMode = "light";
 let totalSeconds = MODES.light.work * 60;

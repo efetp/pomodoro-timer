@@ -6,6 +6,7 @@ let _pg_savedThemeId = 'void';
 let _pg_savedOverlay  = 'balanced';
 
 function initPlayground() {
+    preloadThemeImages();
     buildPlaygroundGrid();
 
     document.getElementById('btn-theme-fab').addEventListener('click', openPlayground);
@@ -51,7 +52,7 @@ function closePlayground(apply) {
         persistTheme(_pg_savedThemeId, _pg_savedOverlay);
     } else {
         // Revert to what was applied before playground was opened
-        applyTheme(_pg_savedThemeId, _pg_savedOverlay, false);
+        applyTheme(_pg_savedThemeId, _pg_savedOverlay);
     }
     document.getElementById('theme-playground').classList.add('hidden');
 }
@@ -60,38 +61,28 @@ function buildPlaygroundGrid() {
     const grid = document.getElementById('playground-theme-grid');
     if (!grid) return;
 
+    const frag = document.createDocumentFragment();
+
     DEEPLY_THEMES.forEach(theme => {
         const card = document.createElement('div');
         card.className = 'pg-theme-card';
         card.dataset.themeId = theme.id;
         card.style.setProperty('--card-accent', theme.accent);
 
-        // Thumbnail: real image with gradient fallback
-        const thumbBg = theme.image
-            ? `url(https://images.unsplash.com/photo-${theme.image}?w=400&h=240&fit=crop&q=60&auto=format) center/cover, ${theme.thumbGradient}`
-            : theme.thumbGradient;
-
         card.innerHTML = `
-            <div class="pg-card-thumb" style="background:${thumbBg}">
-                <div class="pg-card-check">
-                    <svg viewBox="0 0 10 10" fill="none">
-                        <path d="M2 5l2.5 2.5L8 2.5" stroke="white" stroke-width="1.5"
-                              stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="pg-card-foot">
-                <div class="pg-card-dot"></div>
-                <span class="pg-card-name">${theme.name}</span>
-            </div>`;
+            <div class="pg-card-gradient"></div>
+            <span class="pg-card-name">${theme.name}</span>
+            <div class="pg-card-check"></div>`;
 
         card.addEventListener('click', () => {
             applyTheme(theme.id, window._deeplyOverlay || 'balanced');
             syncPlaygroundCards(theme.id);
         });
 
-        grid.appendChild(card);
+        frag.appendChild(card);
     });
+
+    grid.appendChild(frag);
 }
 
 function syncPlaygroundCards(activeId) {
@@ -117,6 +108,6 @@ function loadLocalTheme() {
     if (!raw) return;
     try {
         const { id, overlay } = JSON.parse(raw);
-        applyTheme(id || 'void', overlay || 'balanced', false);
+        applyTheme(id || 'void', overlay || 'balanced');
     } catch { /* ignore */ }
 }
