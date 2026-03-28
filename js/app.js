@@ -1859,6 +1859,21 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     initMatrixDragDrop();
     initPlayground();
 
+    // One-time personalization tooltip
+    if (!localStorage.getItem('deeply_fab_seen')) {
+        const tooltip = document.getElementById('fab-tooltip');
+        const fab = document.getElementById('btn-theme-fab');
+        if (tooltip && fab) {
+            tooltip.classList.remove('hidden');
+            fab.classList.add('fab-highlight');
+            document.getElementById('fab-tooltip-dismiss').addEventListener('click', () => {
+                tooltip.classList.add('hidden');
+                fab.classList.remove('fab-highlight');
+                localStorage.setItem('deeply_fab_seen', '1');
+            });
+        }
+    }
+
     // Signal that init is done — auth listener can now handle changes
     _appInitialized = true;
 })();
@@ -1872,8 +1887,10 @@ async function initTheme() {
             return;
         }
     }
-    // Guest or no saved theme — try localStorage, else keep default
+    // Guest or no saved theme — try localStorage
     if (typeof loadLocalTheme === "function") loadLocalTheme();
+    // If still no theme applied, default to Midnight Rain
+    if (!window._deeplyThemeId) applyTheme('midnight-rain', 'balanced');
 }
 
 // ============================================================

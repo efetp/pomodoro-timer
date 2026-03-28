@@ -261,7 +261,9 @@ function preloadThemeImages() {
 }
 
 function getThemeById(id) {
-    return DEEPLY_THEMES.find(t => t.id === id) || DEEPLY_THEMES[0];
+    return DEEPLY_THEMES.find(t => t.id === id)
+        || DEEPLY_THEMES.find(t => t.id === 'midnight-rain')
+        || DEEPLY_THEMES[0];
 }
 
 // Track which theme the background is waiting for — cancels stale loads
@@ -298,12 +300,12 @@ function applyTheme(themeId, overlay = 'balanced') {
         root.style.setProperty('--border-subtle', 'rgba(0, 0, 0, 0.12)');
     } else {
         root.style.setProperty('--text', '#e8e8f0');
-        root.style.setProperty('--text-muted', '#9a9ab0');
-        root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.1)');
-        root.style.setProperty('--glass-shine', 'rgba(255, 255, 255, 0.04)');
-        root.style.setProperty('--surface-hover', 'rgba(255, 255, 255, 0.04)');
-        root.style.setProperty('--surface-dim', 'rgba(255, 255, 255, 0.05)');
-        root.style.setProperty('--border-subtle', 'rgba(255, 255, 255, 0.06)');
+        root.style.setProperty('--text-muted', '#b4b4cc');
+        root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.12)');
+        root.style.setProperty('--glass-shine', 'rgba(255, 255, 255, 0.05)');
+        root.style.setProperty('--surface-hover', 'rgba(255, 255, 255, 0.05)');
+        root.style.setProperty('--surface-dim', 'rgba(255, 255, 255, 0.07)');
+        root.style.setProperty('--border-subtle', 'rgba(255, 255, 255, 0.08)');
     }
 
     // Background image — use cache, wait for load if not ready
