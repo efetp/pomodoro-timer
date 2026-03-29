@@ -1859,19 +1859,9 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     initMatrixDragDrop();
     initPlayground();
 
-    // One-time personalization tooltip
-    if (!localStorage.getItem('deeply_fab_seen')) {
-        const tooltip = document.getElementById('fab-tooltip');
-        const fab = document.getElementById('btn-theme-fab');
-        if (tooltip && fab) {
-            tooltip.classList.remove('hidden');
-            fab.classList.add('fab-highlight');
-            document.getElementById('fab-tooltip-dismiss').addEventListener('click', () => {
-                tooltip.classList.add('hidden');
-                fab.classList.remove('fab-highlight');
-                localStorage.setItem('deeply_fab_seen', '1');
-            });
-        }
+    // One-time walkthrough for new users
+    if (!localStorage.getItem('deeply_walkthrough_done')) {
+        startWalkthrough();
     }
 
     // Signal that init is done — auth listener can now handle changes
@@ -2124,6 +2114,142 @@ function renderQuadrantReality(sessions, todos) {
 
     document.getElementById("quadrant-reality-grid").innerHTML = tiles ||
         `<p style="color:var(--text-muted);font-size:0.8rem;margin:0">No focus sessions this week</p>`;
+}
+
+// ============================================================
+// WALKTHROUGH — First-time user guided tour
+// ============================================================
+
+const WALKTHROUGH_STEPS = [
+    {
+        target: '.timer-section',
+        position: 'below',
+        message: 'The Pomodoro timer. Choose Light, Deep, or Custom focus sessions and drag the ring to set your duration.',
+    },
+    {
+        target: '.todo-section',
+        position: 'right',
+        message: 'Your task list. Add tasks, set deadlines, and pick which task to focus on during a session.',
+    },
+    {
+        target: '.matrix-section',
+        position: 'left',
+        message: 'The Eisenhower Matrix. Drag tasks between quadrants to prioritize by importance and urgency.',
+    },
+    {
+        target: '.main-nav-inner',
+        position: 'below',
+        message: 'Switch between Focus mode and Insights. Insights tracks your sessions, time per course, and quadrant balance over each week.',
+    },
+    {
+        target: '#btn-theme-fab',
+        position: 'above',
+        message: 'Personalize your theme. Choose from 17 backgrounds and adjust the overlay to your preference.',
+    },
+];
+
+let _wtStep = 0;
+let _wtPrevTarget = null;
+
+function startWalkthrough() {
+    const tooltip = document.getElementById('walkthrough-tooltip');
+    const nextBtn = document.getElementById('wt-next');
+    const skipBtn = document.getElementById('wt-skip');
+    if (!tooltip || !nextBtn || !skipBtn) return;
+
+    nextBtn.addEventListener('click', () => {
+        _wtStep++;
+        if (_wtStep >= WALKTHROUGH_STEPS.length) {
+            endWalkthrough();
+        } else {
+            showWalkthroughStep();
+        }
+    });
+
+    skipBtn.addEventListener('click', endWalkthrough);
+
+    _wtStep = 0;
+    showWalkthroughStep();
+}
+
+function showWalkthroughStep() {
+    const step = WALKTHROUGH_STEPS[_wtStep];
+    const tooltip = document.getElementById('walkthrough-tooltip');
+    const el = document.querySelector(step.target);
+    if (!tooltip || !el) return;
+
+    // Remove highlight from previous target
+    if (_wtPrevTarget) _wtPrevTarget.classList.remove('wt-highlight');
+
+    // Highlight current target
+    el.classList.add('wt-highlight');
+    _wtPrevTarget = el;
+
+    // Update content
+    tooltip.querySelector('.wt-step-count').textContent = `${_wtStep + 1} of ${WALKTHROUGH_STEPS.length}`;
+    tooltip.querySelector('.wt-message').textContent = step.message;
+
+    // Update button text
+    const nextBtn = document.getElementById('wt-next');
+    nextBtn.textContent = _wtStep === WALKTHROUGH_STEPS.length - 1 ? 'Got it' : 'Next';
+
+    // Position tooltip relative to target
+    positionTooltip(tooltip, el, step.position);
+
+    tooltip.classList.remove('hidden');
+}
+
+function positionTooltip(tooltip, target, position) {
+    const rect = target.getBoundingClientRect();
+    const gap = 12;
+
+    // Reset all positioning
+    tooltip.style.top = '';
+    tooltip.style.bottom = '';
+    tooltip.style.left = '';
+    tooltip.style.right = '';
+
+    switch (position) {
+        case 'below':
+            tooltip.style.top = (rect.bottom + gap) + 'px';
+            tooltip.style.left = (rect.left + rect.width / 2 - 115) + 'px';
+            break;
+        case 'above':
+            tooltip.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
+            tooltip.style.right = (window.innerWidth - rect.right + rect.width / 2 - 115) + 'px';
+            break;
+        case 'right':
+            tooltip.style.top = (rect.top + rect.height / 2 - 50) + 'px';
+            tooltip.style.left = (rect.right + gap) + 'px';
+            break;
+        case 'left':
+            tooltip.style.top = (rect.top + rect.height / 2 - 50) + 'px';
+            tooltip.style.right = (window.innerWidth - rect.left + gap) + 'px';
+            break;
+    }
+
+    // Clamp to viewport
+    requestAnimationFrame(() => {
+        const tr = tooltip.getBoundingClientRect();
+        if (tr.left < 8) tooltip.style.left = '8px';
+        if (tr.right > window.innerWidth - 8) {
+            tooltip.style.left = '';
+            tooltip.style.right = '8px';
+        }
+        if (tr.top < 8) tooltip.style.top = '8px';
+        if (tr.bottom > window.innerHeight - 8) {
+            tooltip.style.top = '';
+            tooltip.style.bottom = '8px';
+        }
+    });
+}
+
+function endWalkthrough() {
+    const tooltip = document.getElementById('walkthrough-tooltip');
+    if (tooltip) tooltip.classList.add('hidden');
+    if (_wtPrevTarget) _wtPrevTarget.classList.remove('wt-highlight');
+    _wtPrevTarget = null;
+    localStorage.setItem('deeply_walkthrough_done', '1');
 }
 
 // When tab regains focus, sync timer and background-refresh todos.

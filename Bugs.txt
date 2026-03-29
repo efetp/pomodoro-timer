@@ -1,0 +1,1 @@
+The insights tab is not showing the pomodoro sessions of the current week but adding to the week before; suspected reason is that it aligns the sessions with when the task was created such that when that task created in week X is selected for a Pomodoro session, the session/stats get recorded for week X in the insights tab rather than the current week Y. 

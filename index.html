@@ -58,11 +58,14 @@
         </div>
     </div>
 
-    <!-- One-time personalization tooltip -->
-    <div id="fab-tooltip" class="fab-tooltip hidden">
-        <p>Personalize your theme</p>
-        <button id="fab-tooltip-dismiss" class="fab-tooltip-btn">Got it</button>
-        <div class="fab-tooltip-arrow"></div>
+    <!-- First-time walkthrough tooltip -->
+    <div id="walkthrough-tooltip" class="walkthrough-tooltip hidden">
+        <p class="wt-step-count"></p>
+        <p class="wt-message"></p>
+        <div class="wt-actions">
+            <button id="wt-skip" class="wt-btn-skip">Skip</button>
+            <button id="wt-next" class="wt-btn-next">Next</button>
+        </div>
     </div>
 
     <!-- Theme FAB trigger -->
