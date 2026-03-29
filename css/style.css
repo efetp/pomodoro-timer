@@ -715,11 +715,99 @@ main {
     background: #34d399;
 }
 
-#pet-canvas {
+/* Pet stage — 2D animated character */
+.pet-stage {
     width: 100%;
-    height: 180px;
-    display: block;
+    height: 140px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
     border-radius: 8px;
+}
+
+/* Pet character */
+.pet-char {
+    font-size: 3.5rem;
+    line-height: 1;
+    animation: petBob 2s ease-in-out infinite;
+    cursor: default;
+    user-select: none;
+}
+
+.pet-char.mood-happy {
+    animation: petBob 1.8s ease-in-out infinite;
+}
+
+.pet-char.mood-hungry {
+    animation: petBob 3s ease-in-out infinite;
+    opacity: 0.85;
+}
+
+.pet-char.mood-starving {
+    animation: petSad 4s ease-in-out infinite;
+    opacity: 0.65;
+}
+
+.pet-char.mood-fed {
+    animation: petBounce 0.5s ease-out;
+}
+
+.pet-char.mood-levelup {
+    animation: petSpin 0.8s ease-out;
+}
+
+@keyframes petBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+@keyframes petSad {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    50% { transform: translateY(-2px) rotate(-3deg); }
+}
+
+@keyframes petBounce {
+    0% { transform: translateY(0) scale(1); }
+    30% { transform: translateY(-20px) scale(1.15); }
+    50% { transform: translateY(-20px) scale(1.15); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes petSpin {
+    0% { transform: rotate(0) scale(1); }
+    50% { transform: rotate(360deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Floating hearts/stars on feed */
+.pet-particle {
+    position: absolute;
+    font-size: 1rem;
+    animation: petParticleUp 1s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes petParticleUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(0.5); }
+}
+
+/* Shadow under pet */
+.pet-shadow {
+    position: absolute;
+    bottom: 8px;
+    width: 40px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+    animation: petShadow 1.8s ease-in-out infinite;
+}
+
+@keyframes petShadow {
+    0%, 100% { transform: scaleX(1); opacity: 0.15; }
+    50% { transform: scaleX(0.8); opacity: 0.1; }
 }
 
 .timer-section {

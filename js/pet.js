@@ -1,8 +1,7 @@
 // ============================================================
-// Deeply — Virtual Pet System
+// Deeply — Virtual Pet System (2D)
 // ============================================================
 
-// --- Pet State ---
 const PET_DEFAULTS = {
     name: 'Buddy',
     hunger: 100,
@@ -15,32 +14,30 @@ const PET_DEFAULTS = {
 
 const XP_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2200, 3000, 4000, 5500];
 
-let _petState = null;
-let _petDecayInterval = null;
-let _petSaveInterval = null;
+// Pet appearance per level — evolves as it levels up
+const PET_STAGES = [
+    { emoji: '🐣', name: 'Egg' },       // Lv 1
+    { emoji: '🐥', name: 'Chick' },     // Lv 2
+    { emoji: '🐤', name: 'Duckling' },  // Lv 3
+    { emoji: '🐶', name: 'Pup' },       // Lv 4
+    { emoji: '🐕', name: 'Dog' },       // Lv 5
+    { emoji: '🦊', name: 'Fox' },       // Lv 6
+    { emoji: '🐺', name: 'Wolf' },      // Lv 7
+    { emoji: '🦁', name: 'Lion' },      // Lv 8
+    { emoji: '🐉', name: 'Drake' },     // Lv 9
+    { emoji: '🐲', name: 'Dragon' },    // Lv 10
+];
 
-// --- Three.js refs ---
-let _petScene = null;
-let _petCamera = null;
-let _petRenderer = null;
-let _petModel = null;
-let _petMixer = null;
-let _petClock = null;
-let _petAnimId = null;
+let _petState = null;
 
 // ============================================================
 // STATE MANAGEMENT
 // ============================================================
 
 function loadPetState() {
-    // Try Supabase first (if logged in)
     if (typeof currentUser !== 'undefined' && currentUser && typeof supabaseLoadPet === 'function') {
         return supabaseLoadPet().then(data => {
-            if (data) {
-                _petState = { ...PET_DEFAULTS, ...data };
-            } else {
-                _petState = loadLocalPet();
-            }
+            _petState = { ...PET_DEFAULTS, ...(data || {}) };
             applyDecayCatchup();
             return _petState;
         }).catch(() => {
@@ -57,11 +54,8 @@ function loadPetState() {
 function loadLocalPet() {
     const raw = localStorage.getItem('deeply_pet');
     if (!raw) return { ...PET_DEFAULTS };
-    try {
-        return { ...PET_DEFAULTS, ...JSON.parse(raw) };
-    } catch {
-        return { ...PET_DEFAULTS };
-    }
+    try { return { ...PET_DEFAULTS, ...JSON.parse(raw) }; }
+    catch { return { ...PET_DEFAULTS }; }
 }
 
 function savePetState() {
@@ -78,24 +72,23 @@ function applyDecayCatchup() {
         _petState.lastDecay = new Date().toISOString();
         return;
     }
-    const elapsed = (Date.now() - new Date(_petState.lastDecay).getTime()) / 3600000; // hours
-    if (elapsed > 0) {
-        _petState.hunger = Math.max(0, _petState.hunger - elapsed * 4);
-        _petState.happiness = Math.max(0, _petState.happiness - elapsed * 2);
+    const hours = (Date.now() - new Date(_petState.lastDecay).getTime()) / 3600000;
+    if (hours > 0) {
+        _petState.hunger = Math.max(0, _petState.hunger - hours * 4);
+        _petState.happiness = Math.max(0, _petState.happiness - hours * 2);
         _petState.lastDecay = new Date().toISOString();
     }
 }
 
 function decayTick() {
     if (!_petState) return;
-    // Decay per minute: hunger -0.067/min (~4/hr), happiness -0.033/min (~2/hr)
     _petState.hunger = Math.max(0, _petState.hunger - 0.067);
     _petState.happiness = Math.max(0, _petState.happiness - 0.033);
     _petState.lastDecay = new Date().toISOString();
     updatePetUI();
 }
 
-// --- Feeding (called on pomodoro complete) ---
+// --- Feeding ---
 function feedPet(workMinutes) {
     if (!_petState) return;
     _petState.hunger = Math.min(100, _petState.hunger + 20);
@@ -103,13 +96,15 @@ function feedPet(workMinutes) {
     _petState.xp += workMinutes || 25;
     _petState.lastFed = new Date().toISOString();
 
-    // Level up check
     const oldLevel = _petState.level;
     _petState.level = getLevelForXP(_petState.xp);
+
     if (_petState.level > oldLevel) {
-        triggerLevelUp();
+        triggerAnimation('levelup');
+        spawnParticles('⭐');
     } else {
-        triggerFedAnimation();
+        triggerAnimation('fed');
+        spawnParticles('❤️');
     }
 
     savePetState();
@@ -117,39 +112,15 @@ function feedPet(workMinutes) {
 }
 
 function getLevelForXP(xp) {
-    let lvl = 1;
     for (let i = XP_THRESHOLDS.length - 1; i >= 0; i--) {
-        if (xp >= XP_THRESHOLDS[i]) { lvl = i + 1; break; }
+        if (xp >= XP_THRESHOLDS[i]) return i + 1;
     }
-    return lvl;
+    return 1;
 }
 
 // ============================================================
-// UI UPDATES
+// UI
 // ============================================================
-
-function updatePetUI() {
-    if (!_petState) return;
-    const hungerFill = document.getElementById('pet-hunger-fill');
-    const happyFill = document.getElementById('pet-happy-fill');
-    const nameEl = document.querySelector('.pet-name');
-    const levelEl = document.querySelector('.pet-level');
-
-    if (hungerFill) hungerFill.style.width = Math.round(_petState.hunger) + '%';
-    if (happyFill) happyFill.style.width = Math.round(_petState.happiness) + '%';
-    if (nameEl) nameEl.textContent = _petState.name;
-    if (levelEl) levelEl.textContent = `Lv. ${_petState.level}`;
-
-    // Color the hunger bar based on level
-    if (hungerFill) {
-        if (_petState.hunger > 60) hungerFill.style.background = '#f59e0b';
-        else if (_petState.hunger > 30) hungerFill.style.background = '#f97316';
-        else hungerFill.style.background = '#ef4444';
-    }
-
-    // Update 3D model visual state
-    updatePetVisualState();
-}
 
 function getPetMood() {
     if (!_petState) return 'happy';
@@ -158,220 +129,87 @@ function getPetMood() {
     return 'happy';
 }
 
-// ============================================================
-// THREE.JS RENDERING
-// ============================================================
-
-function initPetCanvas() {
-    const canvas = document.getElementById('pet-canvas');
-    if (!canvas || typeof THREE === 'undefined') return;
-
-    _petClock = new THREE.Clock();
-
-    // Scene
-    _petScene = new THREE.Scene();
-
-    // Camera
-    _petCamera = new THREE.PerspectiveCamera(40, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
-    _petCamera.position.set(0, 1.2, 3);
-    _petCamera.lookAt(0, 0.5, 0);
-
-    // Renderer — transparent background
-    _petRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    _petRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    _petRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    _petRenderer.outputEncoding = THREE.sRGBEncoding;
-
-    // Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-    _petScene.add(ambient);
-
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(2, 3, 2);
-    _petScene.add(dir);
-
-    // Load glTF model
-    loadPetModel();
-
-    // Handle resize
-    const ro = new ResizeObserver(() => {
-        if (!canvas.clientWidth || !canvas.clientHeight) return;
-        _petCamera.aspect = canvas.clientWidth / canvas.clientHeight;
-        _petCamera.updateProjectionMatrix();
-        _petRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    });
-    ro.observe(canvas);
-
-    // Start render loop
-    animatePet();
+function getPetStage() {
+    const idx = Math.min((_petState?.level || 1) - 1, PET_STAGES.length - 1);
+    return PET_STAGES[idx];
 }
 
-function loadPetModel() {
-    if (typeof THREE === 'undefined') {
-        console.warn('Three.js not loaded');
-        return;
+function buildPetDOM() {
+    const stage = document.getElementById('pet-stage');
+    if (!stage) return;
+
+    stage.innerHTML = `
+        <div class="pet-shadow"></div>
+        <div id="pet-char" class="pet-char">${getPetStage().emoji}</div>
+    `;
+}
+
+function updatePetUI() {
+    if (!_petState) return;
+
+    // Bars
+    const hungerFill = document.getElementById('pet-hunger-fill');
+    const happyFill = document.getElementById('pet-happy-fill');
+    const nameEl = document.querySelector('.pet-name');
+    const levelEl = document.querySelector('.pet-level');
+
+    if (hungerFill) {
+        hungerFill.style.width = Math.round(_petState.hunger) + '%';
+        if (_petState.hunger > 60) hungerFill.style.background = '#f59e0b';
+        else if (_petState.hunger > 30) hungerFill.style.background = '#f97316';
+        else hungerFill.style.background = '#ef4444';
     }
-    if (typeof THREE.GLTFLoader === 'undefined') {
-        console.warn('GLTFLoader not available, using fallback pet');
-        createFallbackPet();
-        return;
-    }
+    if (happyFill) happyFill.style.width = Math.round(_petState.happiness) + '%';
 
-    console.log('Loading pet model...');
-    const loader = new THREE.GLTFLoader();
-    loader.load(
-        'assets/pet/Husky.glb',
-        (gltf) => {
-            console.log('Pet model loaded', gltf);
-            _petModel = gltf.scene;
+    const petStage = getPetStage();
+    if (nameEl) nameEl.textContent = petStage.name;
+    if (levelEl) levelEl.textContent = `Lv. ${_petState.level}`;
 
-            // Auto-scale: fit model into view
-            const box = new THREE.Box3().setFromObject(_petModel);
-            const size = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 1.5 / maxDim;
-            _petModel.scale.setScalar(scale);
-            _petModel.position.sub(center.multiplyScalar(scale));
-            _petModel.position.y = 0;
-
-            _petScene.add(_petModel);
-
-            // Set up animations if available
-            if (gltf.animations && gltf.animations.length > 0) {
-                _petMixer = new THREE.AnimationMixer(_petModel);
-                const idle = gltf.animations[0];
-                _petMixer.clipAction(idle).play();
-            }
-
-            updatePetVisualState();
-        },
-        (progress) => {
-            if (progress.total) console.log('Pet loading:', Math.round(progress.loaded / progress.total * 100) + '%');
-        },
-        (err) => {
-            console.warn('Pet model load failed, using fallback:', err.message || err);
-            createFallbackPet();
-        }
-    );
-}
-
-function createFallbackPet() {
-    // Simple sphere pet as fallback when no glTF model is available
-    const group = new THREE.Group();
-
-    // Body
-    const body = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 24, 24),
-        new THREE.MeshStandardMaterial({ color: 0x60a5fa, roughness: 0.4, metalness: 0.1 })
-    );
-    body.position.y = 0.5;
-    group.add(body);
-
-    // Eyes
-    const eyeGeo = new THREE.SphereGeometry(0.08, 12, 12);
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const pupilGeo = new THREE.SphereGeometry(0.04, 8, 8);
-    const pupilMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-
-    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-    leftEye.position.set(-0.15, 0.6, 0.42);
-    group.add(leftEye);
-    const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
-    leftPupil.position.set(-0.15, 0.6, 0.48);
-    group.add(leftPupil);
-
-    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-    rightEye.position.set(0.15, 0.6, 0.42);
-    group.add(rightEye);
-    const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
-    rightPupil.position.set(0.15, 0.6, 0.48);
-    group.add(rightPupil);
-
-    _petModel = group;
-    _petScene.add(_petModel);
-}
-
-function animatePet() {
-    _petAnimId = requestAnimationFrame(animatePet);
-    if (!_petRenderer || !_petScene || !_petCamera) return;
-
-    const delta = _petClock.getDelta();
-    if (_petMixer) _petMixer.update(delta);
-
-    // Idle bobbing animation
-    if (_petModel) {
-        const mood = getPetMood();
-        const time = _petClock.getElapsedTime();
-        const speed = mood === 'happy' ? 1.5 : mood === 'hungry' ? 0.8 : 0.3;
-        const amp = mood === 'happy' ? 0.06 : mood === 'hungry' ? 0.03 : 0.01;
-        _petModel.position.y = Math.sin(time * speed) * amp;
-        _petModel.rotation.y = Math.sin(time * 0.5) * 0.1;
-    }
-
-    _petRenderer.render(_petScene, _petCamera);
-}
-
-function updatePetVisualState() {
-    if (!_petModel) return;
-    const mood = getPetMood();
-
-    // Scale based on mood — starving pet shrinks slightly
-    const targetScale = mood === 'happy' ? 1.0 : mood === 'hungry' ? 0.92 : 0.85;
-    _petModel.scale.setScalar(targetScale);
-
-    // Tint body color for fallback pet
-    if (_petModel.children && _petModel.children[0] && _petModel.children[0].material) {
-        const mat = _petModel.children[0].material;
-        if (mood === 'happy') mat.color.setHex(0x60a5fa);
-        else if (mood === 'hungry') mat.color.setHex(0xf59e0b);
-        else mat.color.setHex(0xef4444);
+    // Update emoji if level changed
+    const charEl = document.getElementById('pet-char');
+    if (charEl) {
+        charEl.textContent = petStage.emoji;
+        charEl.className = 'pet-char mood-' + getPetMood();
     }
 }
 
-// --- Feeding animations ---
-function triggerFedAnimation() {
-    if (!_petModel) return;
-    // Quick bounce
-    const origY = _petModel.position.y;
-    let frame = 0;
-    const bounce = () => {
-        frame++;
-        _petModel.position.y = origY + Math.sin(frame * 0.3) * 0.15 * Math.max(0, 1 - frame / 20);
-        if (frame < 20) requestAnimationFrame(bounce);
-    };
-    bounce();
+function triggerAnimation(type) {
+    const charEl = document.getElementById('pet-char');
+    if (!charEl) return;
+    charEl.className = 'pet-char mood-' + type;
+    // Reset to mood after animation
+    setTimeout(() => {
+        charEl.className = 'pet-char mood-' + getPetMood();
+    }, type === 'levelup' ? 800 : 500);
 }
 
-function triggerLevelUp() {
-    if (!_petModel) return;
-    // Spin + grow
-    let frame = 0;
-    const spin = () => {
-        frame++;
-        _petModel.rotation.y = (frame / 30) * Math.PI * 2;
-        _petModel.scale.setScalar(1 + Math.sin(frame * 0.2) * 0.15);
-        if (frame < 30) requestAnimationFrame(spin);
-        else {
-            _petModel.rotation.y = 0;
-            updatePetVisualState();
-        }
-    };
-    spin();
+function spawnParticles(emoji) {
+    const stage = document.getElementById('pet-stage');
+    if (!stage) return;
+    for (let i = 0; i < 4; i++) {
+        const p = document.createElement('span');
+        p.className = 'pet-particle';
+        p.textContent = emoji;
+        p.style.left = (35 + Math.random() * 30) + '%';
+        p.style.bottom = (40 + Math.random() * 20) + '%';
+        p.style.animationDelay = (i * 0.12) + 's';
+        stage.appendChild(p);
+        setTimeout(() => p.remove(), 1200);
+    }
 }
 
 // ============================================================
-// INITIALIZATION
+// INIT
 // ============================================================
 
 async function initPet() {
     await loadPetState();
-    initPetCanvas();
+    buildPetDOM();
     updatePetUI();
 
     // Decay every minute
-    _petDecayInterval = setInterval(decayTick, 60000);
+    setInterval(decayTick, 60000);
 
     // Save every 60 seconds
-    _petSaveInterval = setInterval(savePetState, 60000);
+    setInterval(savePetState, 60000);
 }
