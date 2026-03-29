@@ -215,7 +215,7 @@ function loadPetModel() {
 
     const loader = new THREE.GLTFLoader();
     loader.load(
-        'assets/pet/pet.glb',
+        'assets/pet/Husky.glb',
         (gltf) => {
             _petModel = gltf.scene;
             _petModel.scale.set(1, 1, 1);
