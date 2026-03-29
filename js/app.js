@@ -1891,17 +1891,40 @@ function showPanel(name) {
     _activePanel = name;
     document.getElementById("focus-panel").classList.toggle("hidden", name !== "focus");
     document.getElementById("insights-panel").classList.toggle("hidden", name !== "insights");
-    document.querySelectorAll(".main-tab").forEach(t =>
+    // Sync sidebar active state
+    document.querySelectorAll(".sidebar-item[data-panel]").forEach(t =>
         t.classList.toggle("active", t.dataset.panel === name)
     );
     if (name === "insights") loadInsights();
-    // Re-position handle after the focus panel becomes visible; getBoundingClientRect()
-    // returns zero while the panel is hidden, so we must wait for layout to settle.
     if (name === "focus") requestAnimationFrame(updateSliderHandle);
 }
 
-document.querySelectorAll(".main-tab").forEach(btn => {
-    btn.addEventListener("click", () => showPanel(btn.dataset.panel));
+// Sidebar open/close
+function openSidebar() {
+    document.getElementById("sidebar").classList.remove("hidden");
+    document.getElementById("sidebar-overlay").classList.remove("hidden");
+}
+function closeSidebar() {
+    document.getElementById("sidebar").classList.add("hidden");
+    document.getElementById("sidebar-overlay").classList.add("hidden");
+}
+
+document.getElementById("hamburger-btn").addEventListener("click", openSidebar);
+document.getElementById("sidebar-close").addEventListener("click", closeSidebar);
+document.getElementById("sidebar-overlay").addEventListener("click", closeSidebar);
+
+// Sidebar panel switching
+document.querySelectorAll(".sidebar-item[data-panel]").forEach(btn => {
+    btn.addEventListener("click", () => {
+        showPanel(btn.dataset.panel);
+        closeSidebar();
+    });
+});
+
+// Sidebar theme button — opens playground
+document.getElementById("sidebar-theme-btn").addEventListener("click", () => {
+    closeSidebar();
+    if (typeof openPlayground === "function") openPlayground();
 });
 
 // ============================================================
@@ -2137,9 +2160,9 @@ const WALKTHROUGH_STEPS = [
         message: 'The Eisenhower Matrix. Drag tasks between quadrants to prioritize by importance and urgency.',
     },
     {
-        target: '.main-nav-inner',
-        position: 'below',
-        message: 'Switch between Focus mode and Insights. Insights tracks your sessions, time per course, and quadrant balance over each week.',
+        target: '#hamburger-btn',
+        position: 'right',
+        message: 'Open the menu to switch between Focus and Insights. Insights tracks your sessions, time per course, and quadrant balance over each week.',
     },
     {
         target: '#btn-theme-fab',

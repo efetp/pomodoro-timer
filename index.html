@@ -80,9 +80,39 @@
         </svg>
     </button>
 
+    <!-- Sidebar overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+
+    <!-- Sidebar menu -->
+    <nav id="sidebar" class="sidebar hidden">
+        <div class="sidebar-header">
+            <span class="sidebar-title">Menu</span>
+            <button id="sidebar-close" class="sidebar-close">&times;</button>
+        </div>
+        <div class="sidebar-items">
+            <button class="sidebar-item active" data-panel="focus">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.5 2.5"/></svg>
+                Focus
+            </button>
+            <button class="sidebar-item" data-panel="insights">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 15V9m4.5 6V5M12 15v-4m4.5 4V7"/></svg>
+                Insights
+            </button>
+            <button class="sidebar-item" id="sidebar-theme-btn">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><circle cx="7" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="13" cy="9" r="1" fill="currentColor" stroke="none"/></svg>
+                Themes
+            </button>
+        </div>
+    </nav>
+
     <div class="container">
         <!-- Header -->
         <header>
+            <button id="hamburger-btn" class="hamburger-btn" title="Menu">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <path d="M3 5h14M3 10h14M3 15h14"/>
+                </svg>
+            </button>
             <div class="title-container">
                 <img src="favicon_new.png" alt="Deeply Logo" class="header-logo">
                 <h1>Deeply</h1>
@@ -188,12 +218,6 @@
             </div>
         </div>
 
-        <nav class="main-nav">
-            <div class="main-nav-inner">
-                <button class="main-tab active" data-panel="focus">Focus</button>
-                <button class="main-tab" data-panel="insights">Insights</button>
-            </div>
-        </nav>
 
         <div id="focus-panel">
             <main>

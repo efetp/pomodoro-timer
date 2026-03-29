@@ -429,6 +429,126 @@ body::before {
     color: var(--text-muted);
 }
 
+/* === Sidebar Navigation === */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0, 0, 0, 0.4);
+}
+.sidebar-overlay.hidden { display: none; }
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 230px;
+    z-index: 501;
+    background: rgba(8, 10, 22, 0.97);
+    border-right: 1px solid var(--border-subtle);
+    padding: 1.2rem 0;
+    transform: translateX(0);
+}
+.theme-light .sidebar {
+    background: rgba(245, 247, 250, 0.98);
+}
+.sidebar.hidden {
+    display: none;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.sidebar-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    line-height: 1;
+}
+
+.sidebar-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 0.5rem;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+
+.sidebar-item svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.sidebar-item:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.sidebar-item.active {
+    background: color-mix(in srgb, var(--active-color) 15%, transparent);
+    color: var(--active-color);
+    font-weight: 600;
+}
+
+/* Hamburger button */
+.hamburger-btn {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 6px;
+}
+
+.hamburger-btn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.hamburger-btn:hover {
+    background: var(--surface-hover);
+}
+
 /* === Layout === */
 .container {
     max-width: 1800px;
@@ -438,7 +558,8 @@ body::before {
 
 header {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    position: relative;
 }
 
 .title-container {
