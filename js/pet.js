@@ -207,18 +207,34 @@ function initPetCanvas() {
 }
 
 function loadPetModel() {
+    if (typeof THREE === 'undefined') {
+        console.warn('Three.js not loaded');
+        return;
+    }
     if (typeof THREE.GLTFLoader === 'undefined') {
-        console.warn('GLTFLoader not available');
+        console.warn('GLTFLoader not available, using fallback pet');
         createFallbackPet();
         return;
     }
 
+    console.log('Loading pet model...');
     const loader = new THREE.GLTFLoader();
     loader.load(
         'assets/pet/Husky.glb',
         (gltf) => {
+            console.log('Pet model loaded', gltf);
             _petModel = gltf.scene;
-            _petModel.scale.set(1, 1, 1);
+
+            // Auto-scale: fit model into view
+            const box = new THREE.Box3().setFromObject(_petModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 1.5 / maxDim;
+            _petModel.scale.setScalar(scale);
+            _petModel.position.sub(center.multiplyScalar(scale));
+            _petModel.position.y = 0;
+
             _petScene.add(_petModel);
 
             // Set up animations if available
@@ -230,7 +246,9 @@ function loadPetModel() {
 
             updatePetVisualState();
         },
-        undefined,
+        (progress) => {
+            if (progress.total) console.log('Pet loading:', Math.round(progress.loaded / progress.total * 100) + '%');
+        },
         (err) => {
             console.warn('Pet model load failed, using fallback:', err.message || err);
             createFallbackPet();
