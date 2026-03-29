@@ -58,6 +58,13 @@
         </div>
     </div>
 
+    <!-- One-time personalization tooltip -->
+    <div id="fab-tooltip" class="fab-tooltip hidden">
+        <p>Personalize your theme</p>
+        <button id="fab-tooltip-dismiss" class="fab-tooltip-btn">Got it</button>
+        <div class="fab-tooltip-arrow"></div>
+    </div>
+
     <!-- Theme FAB trigger -->
     <button id="btn-theme-fab" class="theme-fab" title="Customise theme">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -96,39 +103,38 @@
 
         <!-- Eisenhower Matrix Info Modal -->
         <div id="matrix-info-modal" class="auth-modal hidden">
-            <div class="auth-modal-content glass-inset" style="width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;background:#1a1a2e;border-color:rgba(255,255,255,0.12);">
+            <div class="auth-modal-content glass-inset" style="width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;background:var(--glass-bg);border-color:var(--glass-border);">
                 <div class="modal-header">
                     <span class="modal-title">Eisenhower Matrix</span>
                     <button id="btn-close-matrix-info" class="modal-close">&times;</button>
                 </div>
                 <div class="matrix-info-body">
-                    <p class="matrix-info-lead">A decision framework for separating what actually matters from what just feels urgent.</p>
-                    <p class="matrix-info-text">Dwight Eisenhower — army general and US president — observed that the most urgent tasks are rarely the most important ones. The matrix splits every task across two axes: <strong>importance</strong> (how much it moves you toward your real goals) and <strong>urgency</strong> (how immediately it demands your time).</p>
+                    <p class="matrix-info-lead">Named after Dwight Eisenhower, who noted that urgent tasks are rarely the most important. This framework helps you prioritize by sorting tasks across two axes: <strong>importance</strong> and <strong>urgency</strong>.</p>
 
                     <div class="matrix-info-quadrants">
                         <div class="matrix-info-q miq-do">
                             <span class="miq-label">Do</span>
                             <span class="miq-sub">Important · Urgent</span>
-                            <p>Crisis, deadline-driven work, things with real consequences if not done now. Handle these yourself, immediately. The goal is to keep this quadrant small — if it's always overflowing, something upstream needs fixing.</p>
+                            <p>Tasks with real consequences if not handled now. Act on these immediately and keep this quadrant small.</p>
                         </div>
                         <div class="matrix-info-q miq-schedule">
                             <span class="miq-label">Schedule</span>
                             <span class="miq-sub">Important · Not Urgent</span>
-                            <p>Deep work, long-term goals, personal growth. This is where high performers live. Block time deliberately — these tasks never shout for attention, so they get skipped unless you protect them.</p>
+                            <p>Deep work and long-term goals. Block dedicated time for these since they rarely demand attention on their own.</p>
                         </div>
                         <div class="matrix-info-q miq-delegate">
                             <span class="miq-label">Delegate</span>
                             <span class="miq-sub">Not Important · Urgent</span>
-                            <p>Interruptions and requests that feel pressing but don't advance your goals. Delegate where possible; if you must do them yourself, timebox them and don't let them colonise your day.</p>
+                            <p>Requests that feel pressing but don't advance your goals. Delegate or timebox them to stay focused.</p>
                         </div>
                         <div class="matrix-info-q miq-delete">
                             <span class="miq-label">Delete</span>
                             <span class="miq-sub">Not Important · Not Urgent</span>
-                            <p>Busywork, trivial distractions, tasks you keep moving forward. Be honest: if it's been here a while and nothing bad happened, it probably doesn't need doing at all.</p>
+                            <p>Low-value tasks and distractions. If nothing happens when you skip them, they likely don't need doing.</p>
                         </div>
                     </div>
 
-                    <p class="matrix-info-tip">Drag any task between quadrants to update its priority and urgency instantly.</p>
+                    <p class="matrix-info-tip">Drag tasks between quadrants to update priority and urgency.</p>
                 </div>
             </div>
         </div>
@@ -557,8 +563,10 @@
             const raw = localStorage.getItem('deeply_theme');
             if (raw) try {
                 const t = JSON.parse(raw);
-                if (t.id) applyTheme(t.id, t.overlay || 'balanced', false);
+                if (t.id) { applyTheme(t.id, t.overlay || 'balanced'); return; }
             } catch {}
+            // First visit — default to Midnight Rain
+            applyTheme('midnight-rain', 'balanced');
         })();
     </script>
     <script src="js/app.js"></script>
