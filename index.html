@@ -414,20 +414,34 @@
                 <!-- Pet container (below task list, column 1) -->
                 <section id="pet-section" class="pet-section glass-panel">
                     <div class="pet-status-bar">
-                        <span class="pet-name">Puppy</span>
+                        <span class="pet-name">Baby Dog</span>
                         <span class="pet-level">Lv. 1</span>
+                        <button id="pet-change-btn" class="pet-change-btn" title="Change pet">
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4l3-3 3 3M4 1v10M15 12l-3 3-3-3M12 15V5"/></svg>
+                        </button>
                     </div>
                     <div id="pet-stage" class="pet-stage">
                         <canvas id="pet-canvas"></canvas>
                     </div>
                     <div class="pet-evo">
                         <div class="pet-evo-header">
-                            <span class="pet-evo-title">Evolution</span>
-                            <span id="pet-evo-label" class="pet-evo-next">🐕 Pup</span>
+                            <span class="pet-evo-title">Level</span>
+                            <span id="pet-evo-label" class="pet-evo-next">Junior</span>
                         </div>
                         <div class="pet-evo-track"><div id="pet-evo-fill" class="pet-evo-fill" style="width:0%"></div></div>
                     </div>
                 </section>
+
+                <!-- Pet Picker Modal -->
+                <div id="pet-picker-modal" class="auth-modal hidden">
+                    <div class="auth-modal-content glass-inset" style="width:380px;max-width:92vw;max-height:80vh;overflow-y:auto;background:var(--glass-bg);border-color:var(--glass-border);">
+                        <div class="modal-header">
+                            <span class="modal-title">Choose Your Pet</span>
+                            <button id="pet-picker-close" class="modal-close">&times;</button>
+                        </div>
+                        <div id="pet-picker-grid" class="pet-picker-grid"></div>
+                    </div>
+                </div>
 
                 <!-- CENTER: Timer Panel -->
                 <section class="timer-section glass-panel">
