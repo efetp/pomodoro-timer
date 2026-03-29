@@ -1,29 +1,33 @@
 // ============================================================
-// Deeply — Virtual Pet System
+// Deeply — Virtual Pet System (3D cube pets)
 // ============================================================
 
-const PET_DEFAULTS = {
-    xp: 0,
-    level: 1,
-};
+const PET_DEFAULTS = { xp: 0, level: 1 };
 
 const XP_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200, 1700, 2400, 3500];
 
-// Pet appearance per level — puppy grows up
+// Each stage maps to a .glb file in assets/pet/
+// Drop files named: stage1.glb, stage2.glb, ... stage10.glb
 const PET_STAGES = [
-    { emoji: '🐶', name: 'Puppy' },      // Lv 1
-    { emoji: '🐕', name: 'Pup' },        // Lv 2
-    { emoji: '🦮', name: 'Good Boy' },   // Lv 3
-    { emoji: '🐕‍🦺', name: 'Scout' },     // Lv 4
-    { emoji: '🐺', name: 'Alpha' },      // Lv 5
-    { emoji: '🦊', name: 'Sly Fox' },    // Lv 6
-    { emoji: '🐻', name: 'Bear' },       // Lv 7
-    { emoji: '🦁', name: 'King' },       // Lv 8
-    { emoji: '🐉', name: 'Drake' },      // Lv 9
-    { emoji: '🐲', name: 'Legend' },     // Lv 10
+    { file: 'stage1.glb', name: 'Puppy' },
+    { file: 'stage2.glb', name: 'Pup' },
+    { file: 'stage3.glb', name: 'Good Boy' },
+    { file: 'stage4.glb', name: 'Scout' },
+    { file: 'stage5.glb', name: 'Alpha' },
+    { file: 'stage6.glb', name: 'Ranger' },
+    { file: 'stage7.glb', name: 'Bear' },
+    { file: 'stage8.glb', name: 'King' },
+    { file: 'stage9.glb', name: 'Drake' },
+    { file: 'stage10.glb', name: 'Legend' },
 ];
 
 let _petState = null;
+
+// Three.js refs
+let _petScene, _petCamera, _petRenderer, _petModel, _petMixer, _petClock;
+let _petAnimId = null;
+let _petSessionActive = false;
+let _petCurrentStageFile = null;
 
 // ============================================================
 // STATE
@@ -59,7 +63,7 @@ function savePetState() {
 }
 
 // ============================================================
-// FEEDING — called on pomodoro complete
+// FEEDING
 // ============================================================
 
 function feedPet(workMinutes) {
@@ -70,10 +74,11 @@ function feedPet(workMinutes) {
     _petState.level = getLevelForXP(_petState.xp);
 
     if (_petState.level > oldLevel) {
-        triggerAnimation('levelup');
+        // Level up — reload model for new stage
+        loadPetModel();
         spawnParticles('⭐');
     } else {
-        triggerAnimation('fed');
+        triggerBounce();
         spawnParticles('❤️');
     }
 
@@ -89,17 +94,11 @@ function getLevelForXP(xp) {
 }
 
 // ============================================================
-// SESSION STATE — pet reacts to active pomodoro
+// SESSION STATE
 // ============================================================
 
 function setPetSessionActive(active) {
-    const charEl = document.getElementById('pet-char');
-    if (!charEl) return;
-    if (active) {
-        charEl.classList.add('session-active');
-    } else {
-        charEl.classList.remove('session-active');
-    }
+    _petSessionActive = active;
 }
 
 // ============================================================
@@ -114,59 +113,30 @@ function getPetStage() {
 function getXPProgress() {
     if (!_petState) return 0;
     const lvl = _petState.level;
-    const currThreshold = XP_THRESHOLDS[lvl - 1] || 0;
-    const nextThreshold = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1] + 500;
-    const progress = (_petState.xp - currThreshold) / (nextThreshold - currThreshold);
-    return Math.min(1, Math.max(0, progress));
-}
-
-function buildPetDOM() {
-    const stage = document.getElementById('pet-stage');
-    if (!stage) return;
-    stage.innerHTML = `
-        <div class="pet-shadow"></div>
-        <div id="pet-char" class="pet-char">${getPetStage().emoji}</div>
-    `;
+    const curr = XP_THRESHOLDS[lvl - 1] || 0;
+    const next = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1] + 500;
+    return Math.min(1, Math.max(0, (_petState.xp - curr) / (next - curr)));
 }
 
 function updatePetUI() {
     if (!_petState) return;
+    const stage = getPetStage();
 
-    const petStage = getPetStage();
     const nameEl = document.querySelector('.pet-name');
     const levelEl = document.querySelector('.pet-level');
     const evoFill = document.getElementById('pet-evo-fill');
     const evoLabel = document.getElementById('pet-evo-label');
 
-    if (nameEl) nameEl.textContent = petStage.name;
+    if (nameEl) nameEl.textContent = stage.name;
     if (levelEl) levelEl.textContent = `Lv. ${_petState.level}`;
+    if (evoFill) evoFill.style.width = Math.round(getXPProgress() * 100) + '%';
 
-    // Evolution progress bar
-    const progress = getXPProgress();
-    if (evoFill) evoFill.style.width = Math.round(progress * 100) + '%';
-
-    // Next evolution name
     if (evoLabel) {
         const nextIdx = Math.min(_petState.level, PET_STAGES.length - 1);
-        if (_petState.level >= PET_STAGES.length) {
-            evoLabel.textContent = 'Max level';
-        } else {
-            evoLabel.textContent = `${PET_STAGES[nextIdx].emoji} ${PET_STAGES[nextIdx].name}`;
-        }
+        evoLabel.textContent = _petState.level >= PET_STAGES.length
+            ? 'Max level'
+            : PET_STAGES[nextIdx].name;
     }
-
-    // Update emoji
-    const charEl = document.getElementById('pet-char');
-    if (charEl) charEl.textContent = petStage.emoji;
-}
-
-function triggerAnimation(type) {
-    const charEl = document.getElementById('pet-char');
-    if (!charEl) return;
-    charEl.classList.add('mood-' + type);
-    setTimeout(() => {
-        charEl.classList.remove('mood-' + type);
-    }, type === 'levelup' ? 800 : 500);
 }
 
 function spawnParticles(emoji) {
@@ -185,11 +155,141 @@ function spawnParticles(emoji) {
 }
 
 // ============================================================
+// THREE.JS
+// ============================================================
+
+function initPetCanvas() {
+    const canvas = document.getElementById('pet-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    _petClock = new THREE.Clock();
+    _petScene = new THREE.Scene();
+
+    _petCamera = new THREE.PerspectiveCamera(35, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+    _petCamera.position.set(0, 1.5, 4);
+    _petCamera.lookAt(0, 0.5, 0);
+
+    _petRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    _petRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    _petRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    _petRenderer.outputEncoding = THREE.sRGBEncoding;
+
+    // Lighting
+    _petScene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(2, 4, 3);
+    _petScene.add(dir);
+
+    // Resize
+    const ro = new ResizeObserver(() => {
+        if (!canvas.clientWidth || !canvas.clientHeight) return;
+        _petCamera.aspect = canvas.clientWidth / canvas.clientHeight;
+        _petCamera.updateProjectionMatrix();
+        _petRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    });
+    ro.observe(canvas);
+
+    loadPetModel();
+    animatePet();
+}
+
+function loadPetModel() {
+    const stage = getPetStage();
+    if (_petCurrentStageFile === stage.file) return; // already loaded
+    _petCurrentStageFile = stage.file;
+
+    if (typeof THREE.GLTFLoader === 'undefined') {
+        console.warn('GLTFLoader not available');
+        return;
+    }
+
+    // Remove old model
+    if (_petModel) {
+        _petScene.remove(_petModel);
+        _petModel = null;
+        _petMixer = null;
+    }
+
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+        `assets/pet/${stage.file}`,
+        (gltf) => {
+            // Only apply if still the current stage
+            if (_petCurrentStageFile !== stage.file) return;
+
+            _petModel = gltf.scene;
+
+            // Auto-fit model into view
+            const box = new THREE.Box3().setFromObject(_petModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 1.8 / maxDim;
+            _petModel.scale.setScalar(scale);
+            _petModel.position.x = -center.x * scale;
+            _petModel.position.z = -center.z * scale;
+            _petModel.position.y = -box.min.y * scale; // sit on ground
+
+            _petScene.add(_petModel);
+
+            // Play first animation if available
+            if (gltf.animations && gltf.animations.length) {
+                _petMixer = new THREE.AnimationMixer(_petModel);
+                _petMixer.clipAction(gltf.animations[0]).play();
+            }
+        },
+        undefined,
+        (err) => {
+            console.warn(`Failed to load ${stage.file}:`, err);
+        }
+    );
+}
+
+let _bounceTime = 0;
+
+function animatePet() {
+    _petAnimId = requestAnimationFrame(animatePet);
+    if (!_petRenderer || !_petScene || !_petCamera) return;
+
+    const delta = _petClock.getDelta();
+    const time = _petClock.getElapsedTime();
+
+    if (_petMixer) _petMixer.update(delta);
+
+    if (_petModel) {
+        // Idle bob or excited bounce
+        if (_petSessionActive) {
+            const bounce = Math.abs(Math.sin(time * 4)) * 0.15;
+            _petModel.position.y = (_petModel.position.y || 0) > 0.01
+                ? bounce : bounce;
+            _petModel.rotation.y = Math.sin(time * 2) * 0.15;
+        } else {
+            const bob = Math.sin(time * 1.5) * 0.04;
+            _petModel.position.y += bob * delta;
+            _petModel.rotation.y = Math.sin(time * 0.5) * 0.08;
+        }
+
+        // Bounce animation on feed
+        if (_bounceTime > 0) {
+            _bounceTime -= delta;
+            const t = Math.max(0, _bounceTime);
+            _petModel.position.y += Math.sin(t * 12) * 0.1 * t;
+        }
+    }
+
+    _petRenderer.render(_petScene, _petCamera);
+}
+
+function triggerBounce() {
+    _bounceTime = 0.6;
+}
+
+// ============================================================
 // INIT
 // ============================================================
 
 async function initPet() {
     await loadPetState();
-    buildPetDOM();
+    initPetCanvas();
     updatePetUI();
 }
