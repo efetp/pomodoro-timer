@@ -108,29 +108,36 @@
     <div class="container">
         <!-- Header -->
         <header>
-            <button id="hamburger-btn" class="hamburger-btn" title="Menu">
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                    <path d="M3 5h14M3 10h14M3 15h14"/>
-                </svg>
-            </button>
-            <div class="title-container">
-                <img src="favicon_new.png" alt="Deeply Logo" class="header-logo">
-                <h1>Deeply</h1>
-            </div>
-            <div id="stats-bar">
-                <span id="stat-pomodoros">0 pomodoros</span>
-                <span class="stat-divider">|</span>
-                <span id="stat-minutes">0 min focused</span>
+            <div class="header-left">
+                <button id="hamburger-btn" class="hamburger-btn" title="Menu">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M3 5h14M3 10h14M3 15h14"/>
+                    </svg>
+                </button>
             </div>
 
-            <!-- Auth Bar (logged out) -->
-            <div id="auth-bar" class="auth-bar">
-                <button id="btn-sign-in" class="auth-sign-in-btn">Sign In</button>
+            <div class="header-center">
+                <div class="title-container">
+                    <img src="favicon_new.png" alt="Deeply Logo" class="header-logo">
+                    <h1>Deeply</h1>
+                </div>
+                <div id="stats-bar">
+                    <span id="stat-pomodoros">0 pomodoros</span>
+                    <span class="stat-divider">|</span>
+                    <span id="stat-minutes">0 min focused</span>
+                </div>
             </div>
-            <!-- User Bar (logged in) -->
-            <div id="user-bar" class="user-bar hidden">
-                <span id="user-email" class="user-email"></span>
-                <button id="btn-sign-out" class="auth-sign-out-btn">Sign Out</button>
+
+            <div class="header-right">
+                <!-- Auth Bar (logged out) -->
+                <div id="auth-bar" class="auth-bar">
+                    <button id="btn-sign-in" class="auth-sign-in-btn">Sign In</button>
+                </div>
+                <!-- User Bar (logged in) -->
+                <div id="user-bar" class="user-bar hidden">
+                    <span id="user-email" class="user-email"></span>
+                    <button id="btn-sign-out" class="auth-sign-out-btn">Sign Out</button>
+                </div>
             </div>
         </header>
 

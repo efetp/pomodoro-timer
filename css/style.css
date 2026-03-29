@@ -527,26 +527,30 @@ body::before {
 
 /* Hamburger button */
 .hamburger-btn {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
     background: none;
-    border: none;
-    color: var(--text);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0.4rem;
-    border-radius: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
 }
 
 .hamburger-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     display: block;
 }
 
 .hamburger-btn:hover {
     background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--glass-border);
 }
 
 /* === Layout === */
@@ -557,9 +561,32 @@ body::before {
 }
 
 header {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
     margin-bottom: 0.75rem;
     position: relative;
+}
+
+.header-left {
+    position: absolute;
+    left: 0;
+    display: flex;
+    align-items: center;
+}
+
+.header-right {
+    position: absolute;
+    right: 0;
+    display: flex;
+    align-items: center;
+}
+
+.header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .title-container {
@@ -567,7 +594,7 @@ header {
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.2rem;
 }
 
 .header-logo {
@@ -1633,7 +1660,7 @@ main {
 /* --- Todo List --- */
 .todo-list {
     list-style: none;
-    max-height: 180px;
+    max-height: 320px;
     overflow-y: auto;
     scrollbar-width: thin;
 }
