@@ -245,6 +245,28 @@ async function supabaseSaveTheme(themeId, overlay) {
     if (error) console.warn("Save theme error:", error.message);
 }
 
+async function supabaseLoadPet() {
+    if (!currentUser) return null;
+    const { data, error } = await withTimeout(
+        sb.from("user_settings").select("pet").eq("user_id", currentUser.id).maybeSingle(),
+        8000
+    );
+    if (error) { console.warn("Load pet error:", error.message); return null; }
+    return data ? data.pet : null;
+}
+
+async function supabaseSavePet(petState) {
+    if (!currentUser) return;
+    const { error } = await withTimeout(
+        sb.from("user_settings").upsert(
+            { user_id: currentUser.id, pet: petState },
+            { onConflict: "user_id" }
+        ),
+        8000
+    );
+    if (error) console.warn("Save pet error:", error.message);
+}
+
 async function supabaseLoadCourses() {
     if (!currentUser) return null;
     const { data, error } = await withTimeout(

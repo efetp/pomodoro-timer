@@ -412,6 +412,10 @@ async function onTimerComplete() {
 
         // Log session in background (non-blocking)
         logSession().catch(e => console.warn("Session log error:", e));
+
+        // Feed the pet
+        const workMin = currentMode === "custom" ? customWorkMinutes : MODES[currentMode].work;
+        if (typeof feedPet === 'function') feedPet(workMin);
     } else {
         isBreak = false;
         if (currentMode === "custom") {
@@ -1858,6 +1862,9 @@ if (authForm) authForm.addEventListener("submit", async (e) => {
     renderMatrix();
     initMatrixDragDrop();
     initPlayground();
+
+    // Initialize virtual pet
+    if (typeof initPet === 'function') initPet().catch(e => console.warn('Pet init error:', e));
 
     // One-time walkthrough for new users
     if (!localStorage.getItem('deeply_walkthrough_done')) {
