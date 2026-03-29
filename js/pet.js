@@ -1,53 +1,45 @@
 // ============================================================
-// Deeply — Virtual Pet System (2D)
+// Deeply — Virtual Pet System
 // ============================================================
 
 const PET_DEFAULTS = {
-    name: 'Buddy',
-    hunger: 100,
-    happiness: 100,
     xp: 0,
     level: 1,
-    lastFed: null,
-    lastDecay: new Date().toISOString(),
 };
 
-const XP_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2200, 3000, 4000, 5500];
+const XP_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200, 1700, 2400, 3500];
 
-// Pet appearance per level — evolves as it levels up
+// Pet appearance per level — puppy grows up
 const PET_STAGES = [
-    { emoji: '🐣', name: 'Egg' },       // Lv 1
-    { emoji: '🐥', name: 'Chick' },     // Lv 2
-    { emoji: '🐤', name: 'Duckling' },  // Lv 3
-    { emoji: '🐶', name: 'Pup' },       // Lv 4
-    { emoji: '🐕', name: 'Dog' },       // Lv 5
-    { emoji: '🦊', name: 'Fox' },       // Lv 6
-    { emoji: '🐺', name: 'Wolf' },      // Lv 7
-    { emoji: '🦁', name: 'Lion' },      // Lv 8
-    { emoji: '🐉', name: 'Drake' },     // Lv 9
-    { emoji: '🐲', name: 'Dragon' },    // Lv 10
+    { emoji: '🐶', name: 'Puppy' },      // Lv 1
+    { emoji: '🐕', name: 'Pup' },        // Lv 2
+    { emoji: '🦮', name: 'Good Boy' },   // Lv 3
+    { emoji: '🐕‍🦺', name: 'Scout' },     // Lv 4
+    { emoji: '🐺', name: 'Alpha' },      // Lv 5
+    { emoji: '🦊', name: 'Sly Fox' },    // Lv 6
+    { emoji: '🐻', name: 'Bear' },       // Lv 7
+    { emoji: '🦁', name: 'King' },       // Lv 8
+    { emoji: '🐉', name: 'Drake' },      // Lv 9
+    { emoji: '🐲', name: 'Legend' },     // Lv 10
 ];
 
 let _petState = null;
 
 // ============================================================
-// STATE MANAGEMENT
+// STATE
 // ============================================================
 
 function loadPetState() {
     if (typeof currentUser !== 'undefined' && currentUser && typeof supabaseLoadPet === 'function') {
         return supabaseLoadPet().then(data => {
             _petState = { ...PET_DEFAULTS, ...(data || {}) };
-            applyDecayCatchup();
             return _petState;
         }).catch(() => {
             _petState = loadLocalPet();
-            applyDecayCatchup();
             return _petState;
         });
     }
     _petState = loadLocalPet();
-    applyDecayCatchup();
     return Promise.resolve(_petState);
 }
 
@@ -66,35 +58,13 @@ function savePetState() {
     }
 }
 
-// --- Decay ---
-function applyDecayCatchup() {
-    if (!_petState || !_petState.lastDecay) {
-        _petState.lastDecay = new Date().toISOString();
-        return;
-    }
-    const hours = (Date.now() - new Date(_petState.lastDecay).getTime()) / 3600000;
-    if (hours > 0) {
-        _petState.hunger = Math.max(0, _petState.hunger - hours * 4);
-        _petState.happiness = Math.max(0, _petState.happiness - hours * 2);
-        _petState.lastDecay = new Date().toISOString();
-    }
-}
+// ============================================================
+// FEEDING — called on pomodoro complete
+// ============================================================
 
-function decayTick() {
-    if (!_petState) return;
-    _petState.hunger = Math.max(0, _petState.hunger - 0.067);
-    _petState.happiness = Math.max(0, _petState.happiness - 0.033);
-    _petState.lastDecay = new Date().toISOString();
-    updatePetUI();
-}
-
-// --- Feeding ---
 function feedPet(workMinutes) {
     if (!_petState) return;
-    _petState.hunger = Math.min(100, _petState.hunger + 20);
-    _petState.happiness = Math.min(100, _petState.happiness + 15);
     _petState.xp += workMinutes || 25;
-    _petState.lastFed = new Date().toISOString();
 
     const oldLevel = _petState.level;
     _petState.level = getLevelForXP(_petState.xp);
@@ -119,25 +89,40 @@ function getLevelForXP(xp) {
 }
 
 // ============================================================
-// UI
+// SESSION STATE — pet reacts to active pomodoro
 // ============================================================
 
-function getPetMood() {
-    if (!_petState) return 'happy';
-    if (_petState.hunger < 30) return 'starving';
-    if (_petState.hunger < 60) return 'hungry';
-    return 'happy';
+function setPetSessionActive(active) {
+    const charEl = document.getElementById('pet-char');
+    if (!charEl) return;
+    if (active) {
+        charEl.classList.add('session-active');
+    } else {
+        charEl.classList.remove('session-active');
+    }
 }
+
+// ============================================================
+// UI
+// ============================================================
 
 function getPetStage() {
     const idx = Math.min((_petState?.level || 1) - 1, PET_STAGES.length - 1);
     return PET_STAGES[idx];
 }
 
+function getXPProgress() {
+    if (!_petState) return 0;
+    const lvl = _petState.level;
+    const currThreshold = XP_THRESHOLDS[lvl - 1] || 0;
+    const nextThreshold = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1] + 500;
+    const progress = (_petState.xp - currThreshold) / (nextThreshold - currThreshold);
+    return Math.min(1, Math.max(0, progress));
+}
+
 function buildPetDOM() {
     const stage = document.getElementById('pet-stage');
     if (!stage) return;
-
     stage.innerHTML = `
         <div class="pet-shadow"></div>
         <div id="pet-char" class="pet-char">${getPetStage().emoji}</div>
@@ -147,39 +132,40 @@ function buildPetDOM() {
 function updatePetUI() {
     if (!_petState) return;
 
-    // Bars
-    const hungerFill = document.getElementById('pet-hunger-fill');
-    const happyFill = document.getElementById('pet-happy-fill');
+    const petStage = getPetStage();
     const nameEl = document.querySelector('.pet-name');
     const levelEl = document.querySelector('.pet-level');
+    const evoFill = document.getElementById('pet-evo-fill');
+    const evoLabel = document.getElementById('pet-evo-label');
 
-    if (hungerFill) {
-        hungerFill.style.width = Math.round(_petState.hunger) + '%';
-        if (_petState.hunger > 60) hungerFill.style.background = '#f59e0b';
-        else if (_petState.hunger > 30) hungerFill.style.background = '#f97316';
-        else hungerFill.style.background = '#ef4444';
-    }
-    if (happyFill) happyFill.style.width = Math.round(_petState.happiness) + '%';
-
-    const petStage = getPetStage();
     if (nameEl) nameEl.textContent = petStage.name;
     if (levelEl) levelEl.textContent = `Lv. ${_petState.level}`;
 
-    // Update emoji if level changed
-    const charEl = document.getElementById('pet-char');
-    if (charEl) {
-        charEl.textContent = petStage.emoji;
-        charEl.className = 'pet-char mood-' + getPetMood();
+    // Evolution progress bar
+    const progress = getXPProgress();
+    if (evoFill) evoFill.style.width = Math.round(progress * 100) + '%';
+
+    // Next evolution name
+    if (evoLabel) {
+        const nextIdx = Math.min(_petState.level, PET_STAGES.length - 1);
+        if (_petState.level >= PET_STAGES.length) {
+            evoLabel.textContent = 'Max level';
+        } else {
+            evoLabel.textContent = `${PET_STAGES[nextIdx].emoji} ${PET_STAGES[nextIdx].name}`;
+        }
     }
+
+    // Update emoji
+    const charEl = document.getElementById('pet-char');
+    if (charEl) charEl.textContent = petStage.emoji;
 }
 
 function triggerAnimation(type) {
     const charEl = document.getElementById('pet-char');
     if (!charEl) return;
-    charEl.className = 'pet-char mood-' + type;
-    // Reset to mood after animation
+    charEl.classList.add('mood-' + type);
     setTimeout(() => {
-        charEl.className = 'pet-char mood-' + getPetMood();
+        charEl.classList.remove('mood-' + type);
     }, type === 'levelup' ? 800 : 500);
 }
 
@@ -206,10 +192,4 @@ async function initPet() {
     await loadPetState();
     buildPetDOM();
     updatePetUI();
-
-    // Decay every minute
-    setInterval(decayTick, 60000);
-
-    // Save every 60 seconds
-    setInterval(savePetState, 60000);
 }

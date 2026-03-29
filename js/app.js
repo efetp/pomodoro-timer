@@ -320,6 +320,7 @@ function startTimer() {
     timerSecondsAtStart = remainingSeconds;
     btnStart.disabled = true;
     btnPause.disabled = false;
+    if (typeof setPetSessionActive === 'function') setPetSessionActive(true);
     modeButtons.forEach(btn => {
         if (!btn.classList.contains("active")) btn.disabled = true;
     });
@@ -373,6 +374,7 @@ function pauseTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
     if (_bgTickWorker) _bgTickWorker.postMessage("stop");
+    if (typeof setPetSessionActive === 'function') setPetSessionActive(false);
     btnStart.disabled = false;
     btnPause.disabled = true;
 }
