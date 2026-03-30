@@ -401,7 +401,13 @@ function updateAuthUI(loggedIn) {
         authBar.classList.add("hidden");
         userBar.classList.remove("hidden");
         const userEmail = document.getElementById("user-email");
-        if (userEmail) userEmail.textContent = currentUser?.email || "User";
+        if (userEmail) {
+            const email = currentUser?.email || "User";
+            const [local, domain] = email.split("@");
+            userEmail.textContent = domain
+                ? local.slice(0, 2) + "***@" + domain
+                : email;
+        }
     } else {
         authBar.classList.remove("hidden");
         userBar.classList.add("hidden");

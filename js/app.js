@@ -191,7 +191,7 @@ function renderCourseList(filter = "") {
     }
     filtered.forEach(c => {
         const li = document.createElement("li");
-        li.innerHTML = `<span>${c}</span><button class="course-remove-btn" data-course="${c}">&times;</button>`;
+        li.innerHTML = `<span>${escapeHtml(c)}</span><button class="course-remove-btn" data-course="${escapeHtml(c)}">&times;</button>`;
         li.querySelector(".course-remove-btn").addEventListener("click", () => {
             const updated = loadCourses(selectedCategory).filter(x => x !== c);
             saveCourses(updated, selectedCategory);
