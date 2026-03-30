@@ -2,35 +2,35 @@
 // Deeply — Virtual Pet System (3D cube pets)
 // ============================================================
 
-const PET_DEFAULTS = { xp: 0, level: 1, pet: 'dog' };
+const PET_DEFAULTS = { xp: 0, level: 1, pet: 'dog', petName: 'Barkley' };
 
 const XP_THRESHOLDS = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450];
 
 const PET_LIST = [
-    { id: 'beaver', name: 'Beaver — Chip' },
-    { id: 'bee', name: 'Bee — Buzz' },
-    { id: 'bunny', name: 'Bunny — Mochi' },
-    { id: 'cat', name: 'Cat — Luna' },
-    { id: 'caterpillar', name: 'Caterpillar — Noodle' },
-    { id: 'chick', name: 'Chick — Peep' },
-    { id: 'cow', name: 'Cow — Biscuit' },
-    { id: 'crab', name: 'Crab — Pinch' },
-    { id: 'deer', name: 'Deer — Clover' },
-    { id: 'dog', name: 'Dog — Barkley' },
-    { id: 'elephant', name: 'Elephant — Peanut' },
-    { id: 'fish', name: 'Fish — Bubbles' },
-    { id: 'fox', name: 'Fox — Ember' },
-    { id: 'giraffe', name: 'Giraffe — Stretch' },
-    { id: 'hog', name: 'Hog — Truffle' },
-    { id: 'koala', name: 'Koala — Snooze' },
-    { id: 'lion', name: 'Lion — Mufasa' },
-    { id: 'monkey', name: 'Monkey — Coco' },
-    { id: 'panda', name: 'Panda — Dumpling' },
-    { id: 'parrot', name: 'Parrot — Kiwi' },
-    { id: 'penguin', name: 'Penguin — Waddle' },
-    { id: 'pig', name: 'Pig — Hamlet' },
-    { id: 'polar', name: 'Polar Bear — Frost' },
-    { id: 'tiger', name: 'Tiger — Blaze' },
+    { id: 'beaver', type: 'Beaver', defaultName: 'Chip' },
+    { id: 'bee', type: 'Bee', defaultName: 'Buzz' },
+    { id: 'bunny', type: 'Bunny', defaultName: 'Mochi' },
+    { id: 'cat', type: 'Cat', defaultName: 'Luna' },
+    { id: 'caterpillar', type: 'Caterpillar', defaultName: 'Noodle' },
+    { id: 'chick', type: 'Chick', defaultName: 'Peep' },
+    { id: 'cow', type: 'Cow', defaultName: 'Biscuit' },
+    { id: 'crab', type: 'Crab', defaultName: 'Pinch' },
+    { id: 'deer', type: 'Deer', defaultName: 'Clover' },
+    { id: 'dog', type: 'Dog', defaultName: 'Barkley' },
+    { id: 'elephant', type: 'Elephant', defaultName: 'Peanut' },
+    { id: 'fish', type: 'Fish', defaultName: 'Bubbles' },
+    { id: 'fox', type: 'Fox', defaultName: 'Ember' },
+    { id: 'giraffe', type: 'Giraffe', defaultName: 'Stretch' },
+    { id: 'hog', type: 'Hog', defaultName: 'Truffle' },
+    { id: 'koala', type: 'Koala', defaultName: 'Snooze' },
+    { id: 'lion', type: 'Lion', defaultName: 'Mufasa' },
+    { id: 'monkey', type: 'Monkey', defaultName: 'Coco' },
+    { id: 'panda', type: 'Panda', defaultName: 'Dumpling' },
+    { id: 'parrot', type: 'Parrot', defaultName: 'Kiwi' },
+    { id: 'penguin', type: 'Penguin', defaultName: 'Waddle' },
+    { id: 'pig', type: 'Pig', defaultName: 'Hamlet' },
+    { id: 'polar', type: 'Polar Bear', defaultName: 'Frost' },
+    { id: 'tiger', type: 'Tiger', defaultName: 'Blaze' },
 ];
 
 // Per-animal level titles using real baby/young names
@@ -147,6 +147,9 @@ function getLevelForXP(xp) {
 function selectPet(petId) {
     if (!_petState) return;
     _petState.pet = petId;
+    // Set default name for the new pet (user can edit later)
+    const petInfo = PET_LIST.find(p => p.id === petId);
+    _petState.petName = petInfo ? petInfo.defaultName : petId;
     savePetState();
     loadPetModel();
     updatePetUI();
@@ -170,7 +173,7 @@ function buildPetPicker() {
         const btn = document.createElement('button');
         btn.className = 'pet-pick-btn';
         btn.dataset.petId = p.id;
-        btn.textContent = p.name;
+        btn.textContent = p.type;
         btn.addEventListener('click', () => selectPet(p.id));
         frag.appendChild(btn);
     });
@@ -245,7 +248,8 @@ function updateLiveXPBar() {
 function getPetInfo() {
     const pet = PET_LIST.find(p => p.id === (_petState?.pet || 'dog')) || PET_LIST[9];
     const lvl = _petState?.level || 1;
-    return { ...pet, title: getLevelTitle(lvl, pet.id), level: lvl };
+    const customName = _petState?.petName || pet.defaultName;
+    return { ...pet, title: getLevelTitle(lvl, pet.id), level: lvl, customName };
 }
 
 function getXPProgress() {
@@ -265,7 +269,7 @@ function updatePetUI() {
     const evoFill = document.getElementById('pet-evo-fill');
     const evoLabel = document.getElementById('pet-evo-label');
 
-    if (nameEl) nameEl.textContent = info.name;
+    if (nameEl) nameEl.textContent = info.customName;
     if (levelEl) levelEl.textContent = `Lv. ${info.level}`;
     if (evoFill) evoFill.style.width = Math.round(getXPProgress() * 100) + '%';
 
@@ -434,4 +438,37 @@ async function initPet() {
     if (modal) modal.addEventListener('click', e => {
         if (e.target === modal) closePetPicker();
     });
+
+    // Inline rename — click name to edit
+    const nameDisplay = document.getElementById('pet-name-display');
+    const nameInput = document.getElementById('pet-name-input');
+    if (nameDisplay && nameInput) {
+        nameDisplay.addEventListener('click', () => {
+            nameInput.value = _petState?.petName || '';
+            nameDisplay.classList.add('hidden');
+            nameInput.classList.remove('hidden');
+            nameInput.focus();
+            nameInput.select();
+        });
+
+        const commitRename = () => {
+            const val = nameInput.value.trim();
+            if (val && _petState) {
+                _petState.petName = val;
+                savePetState();
+            }
+            nameInput.classList.add('hidden');
+            nameDisplay.classList.remove('hidden');
+            updatePetUI();
+        };
+
+        nameInput.addEventListener('blur', commitRename);
+        nameInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') nameInput.blur();
+            if (e.key === 'Escape') {
+                nameInput.value = _petState?.petName || '';
+                nameInput.blur();
+            }
+        });
+    }
 }

@@ -675,7 +675,29 @@ main {
     font-weight: 700;
     color: var(--text);
     letter-spacing: 0.3px;
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
 }
+
+.pet-name:hover {
+    border-bottom-color: var(--text-muted);
+}
+
+.pet-name-input {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.3px;
+    background: var(--surface-dim);
+    border: 1px solid var(--active-color);
+    border-radius: 4px;
+    padding: 0.1rem 0.3rem;
+    outline: none;
+    font-family: inherit;
+    width: 90px;
+}
+
+.pet-name-input.hidden { display: none; }
 
 .pet-level {
     font-size: 0.58rem;
