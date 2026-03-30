@@ -320,7 +320,7 @@ function startTimer() {
     timerSecondsAtStart = remainingSeconds;
     btnStart.disabled = true;
     btnPause.disabled = false;
-    if (typeof setPetSessionActive === 'function') setPetSessionActive(true);
+    if (typeof setPetSessionActive === 'function') setPetSessionActive(!isBreak);
     modeButtons.forEach(btn => {
         if (!btn.classList.contains("active")) btn.disabled = true;
     });
