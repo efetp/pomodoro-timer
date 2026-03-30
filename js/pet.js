@@ -4,7 +4,7 @@
 
 const PET_DEFAULTS = { xp: 0, level: 1, pet: 'dog' };
 
-const XP_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200, 1700, 2400, 3500];
+const XP_THRESHOLDS = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450];
 
 const PET_LIST = [
     { id: 'beaver', name: 'Beaver' },
@@ -33,10 +33,41 @@ const PET_LIST = [
     { id: 'tiger', name: 'Tiger' },
 ];
 
-const LEVEL_TITLES = [
-    'Baby', 'Junior', 'Buddy', 'Scout', 'Ace',
-    'Champ', 'Hero', 'Master', 'Legend', 'Mythic'
-];
+// Per-animal level titles using real baby/young names
+const PET_TITLES = {
+    beaver:      ['Kit', 'Young Beaver', 'Beaver', 'Alpha Beaver'],
+    bee:         ['Larva', 'Worker Bee', 'Bee', 'Queen Bee'],
+    bunny:       ['Kit', 'Young Bunny', 'Bunny', 'Alpha Bunny'],
+    cat:         ['Kitten', 'Young Cat', 'Cat', 'Alpha Cat'],
+    caterpillar: ['Larva', 'Caterpillar', 'Cocoon', 'Butterfly'],
+    chick:       ['Chick', 'Fledgling', 'Hen', 'Rooster'],
+    cow:         ['Calf', 'Young Cow', 'Cow', 'Bull'],
+    crab:        ['Zoea', 'Young Crab', 'Crab', 'King Crab'],
+    deer:        ['Fawn', 'Young Deer', 'Deer', 'Stag'],
+    dog:         ['Puppy', 'Young Dog', 'Dog', 'Alpha Dog'],
+    elephant:    ['Calf', 'Young Elephant', 'Elephant', 'Matriarch'],
+    fish:        ['Fry', 'Young Fish', 'Fish', 'Alpha Fish'],
+    fox:         ['Kit', 'Young Fox', 'Fox', 'Alpha Fox'],
+    giraffe:     ['Calf', 'Young Giraffe', 'Giraffe', 'Alpha Giraffe'],
+    hog:         ['Piglet', 'Young Hog', 'Hog', 'Boar'],
+    koala:       ['Joey', 'Young Koala', 'Koala', 'Alpha Koala'],
+    lion:        ['Cub', 'Young Lion', 'Lion', 'King'],
+    monkey:      ['Infant', 'Young Monkey', 'Monkey', 'Alpha Monkey'],
+    panda:       ['Cub', 'Young Panda', 'Panda', 'Alpha Panda'],
+    parrot:      ['Chick', 'Fledgling', 'Parrot', 'Alpha Parrot'],
+    penguin:     ['Chick', 'Young Penguin', 'Penguin', 'Emperor'],
+    pig:         ['Piglet', 'Young Pig', 'Pig', 'Alpha Pig'],
+    polar:       ['Cub', 'Young Bear', 'Polar Bear', 'Alpha Bear'],
+    tiger:       ['Cub', 'Young Tiger', 'Tiger', 'Alpha Tiger'],
+};
+
+function getLevelTitle(lvl, petId) {
+    const titles = PET_TITLES[petId] || ['Baby', 'Junior', 'Adult', 'Legend'];
+    if (lvl <= 3) return titles[0];
+    if (lvl <= 6) return titles[1];
+    if (lvl <= 9) return titles[2];
+    return titles[3];
+}
 
 let _petState = null;
 
@@ -155,11 +186,56 @@ function syncPetPickerActive() {
 }
 
 // ============================================================
-// SESSION STATE
+// SESSION STATE — live XP bar during pomodoro
 // ============================================================
+
+let _petSessionXPStart = 0;
+let _petSessionXPTarget = 0;
+let _petSessionTotalSec = 0;
+let _petSessionStartTime = 0;
+let _petSessionTickId = null;
 
 function setPetSessionActive(active) {
     _petSessionActive = active;
+
+    if (active && _petState) {
+        // Figure out how many minutes this session is worth
+        const workMin = (typeof currentMode !== 'undefined' && typeof MODES !== 'undefined')
+            ? (currentMode === 'custom'
+                ? (typeof customWorkMinutes !== 'undefined' ? customWorkMinutes : 25)
+                : MODES[currentMode].work)
+            : 25;
+        _petSessionXPStart = _petState.xp;
+        _petSessionXPTarget = _petState.xp + workMin;
+        _petSessionTotalSec = workMin * 60;
+        _petSessionStartTime = Date.now();
+
+        // Tick the bar every second
+        if (_petSessionTickId) clearInterval(_petSessionTickId);
+        _petSessionTickId = setInterval(updateLiveXPBar, 1000);
+    } else {
+        // Stop ticking
+        if (_petSessionTickId) {
+            clearInterval(_petSessionTickId);
+            _petSessionTickId = null;
+        }
+    }
+}
+
+function updateLiveXPBar() {
+    if (!_petState || !_petSessionActive) return;
+    const elapsed = (Date.now() - _petSessionStartTime) / 1000;
+    const progress = Math.min(1, elapsed / _petSessionTotalSec);
+    const liveXP = _petSessionXPStart + (_petSessionXPTarget - _petSessionXPStart) * progress;
+
+    // Calculate what the bar would look like at this XP
+    const lvl = _petState.level;
+    const curr = XP_THRESHOLDS[lvl - 1] || 0;
+    const next = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1] + 50;
+    const barProgress = Math.min(1, Math.max(0, (liveXP - curr) / (next - curr)));
+
+    const evoFill = document.getElementById('pet-evo-fill');
+    if (evoFill) evoFill.style.width = Math.round(barProgress * 100) + '%';
 }
 
 // ============================================================
@@ -169,15 +245,14 @@ function setPetSessionActive(active) {
 function getPetInfo() {
     const pet = PET_LIST.find(p => p.id === (_petState?.pet || 'dog')) || PET_LIST[9];
     const lvl = _petState?.level || 1;
-    const title = LEVEL_TITLES[Math.min(lvl - 1, LEVEL_TITLES.length - 1)];
-    return { ...pet, title, level: lvl };
+    return { ...pet, title: getLevelTitle(lvl, pet.id), level: lvl };
 }
 
 function getXPProgress() {
     if (!_petState) return 0;
     const lvl = _petState.level;
     const curr = XP_THRESHOLDS[lvl - 1] || 0;
-    const next = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1] + 500;
+    const next = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1] + 50;
     return Math.min(1, Math.max(0, (_petState.xp - curr) / (next - curr)));
 }
 
@@ -190,15 +265,21 @@ function updatePetUI() {
     const evoFill = document.getElementById('pet-evo-fill');
     const evoLabel = document.getElementById('pet-evo-label');
 
-    if (nameEl) nameEl.textContent = `${info.title} ${info.name}`;
+    if (nameEl) nameEl.textContent = info.name;
     if (levelEl) levelEl.textContent = `Lv. ${info.level}`;
     if (evoFill) evoFill.style.width = Math.round(getXPProgress() * 100) + '%';
 
+    // Growth title — the current stage name (prominent)
+    const growthEl = document.getElementById('pet-growth-title');
+    if (growthEl) growthEl.textContent = info.title;
+
+    // Next stage label
     if (evoLabel) {
-        const nextLvl = Math.min(info.level, LEVEL_TITLES.length - 1);
-        evoLabel.textContent = info.level >= LEVEL_TITLES.length
-            ? 'Max level'
-            : LEVEL_TITLES[nextLvl];
+        if (info.level >= 10) {
+            evoLabel.textContent = 'Max';
+        } else {
+            evoLabel.textContent = getLevelTitle(info.level + 1, _petState.pet);
+        }
     }
 
     syncPetPickerActive();
@@ -231,8 +312,8 @@ function initPetCanvas() {
     _petScene = new THREE.Scene();
 
     _petCamera = new THREE.PerspectiveCamera(35, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
-    _petCamera.position.set(0, 1.5, 4);
-    _petCamera.lookAt(0, 0.5, 0);
+    _petCamera.position.set(0, 2, 5);
+    _petCamera.lookAt(0, 0.6, 0);
 
     _petRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     _petRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
@@ -282,7 +363,7 @@ function loadPetModel() {
             const size = box.getSize(new THREE.Vector3());
             const center = box.getCenter(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 1.8 / maxDim;
+            const scale = maxDim > 0 ? 1.8 / maxDim : 1.0;
             _petModel.scale.setScalar(scale);
             _petModel.position.x = -center.x * scale;
             _petModel.position.z = -center.z * scale;

@@ -1882,7 +1882,7 @@ async function initTheme() {
     if (currentUser && typeof supabaseLoadTheme === "function") {
         const saved = await supabaseLoadTheme();
         if (saved && saved.id) {
-            applyTheme(saved.id, saved.overlay || "balanced", false);
+            applyTheme(saved.id, saved.overlay || "balanced");
             return;
         }
     }
