@@ -2,7 +2,7 @@
 // Deeply — Virtual Pet System (3D cube pets)
 // ============================================================
 
-const PET_DEFAULTS = { xp: 0, level: 1, pet: 'dog', petName: 'Barkley' };
+const PET_DEFAULTS = { xp: 0, level: 1, pet: 'dog', petNames: {} };
 
 const XP_THRESHOLDS = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450];
 
@@ -147,9 +147,12 @@ function getLevelForXP(xp) {
 function selectPet(petId) {
     if (!_petState) return;
     _petState.pet = petId;
-    // Set default name for the new pet (user can edit later)
-    const petInfo = PET_LIST.find(p => p.id === petId);
-    _petState.petName = petInfo ? petInfo.defaultName : petId;
+    // Only set default name if this animal hasn't been named yet
+    if (!_petState.petNames) _petState.petNames = {};
+    if (!_petState.petNames[petId]) {
+        const petInfo = PET_LIST.find(p => p.id === petId);
+        _petState.petNames[petId] = petInfo ? petInfo.defaultName : petId;
+    }
     savePetState();
     loadPetModel();
     updatePetUI();
@@ -248,7 +251,8 @@ function updateLiveXPBar() {
 function getPetInfo() {
     const pet = PET_LIST.find(p => p.id === (_petState?.pet || 'dog')) || PET_LIST[9];
     const lvl = _petState?.level || 1;
-    const customName = _petState?.petName || pet.defaultName;
+    const names = _petState?.petNames || {};
+    const customName = names[pet.id] || pet.defaultName;
     return { ...pet, title: getLevelTitle(lvl, pet.id), level: lvl, customName };
 }
 
@@ -444,7 +448,8 @@ async function initPet() {
     const nameInput = document.getElementById('pet-name-input');
     if (nameDisplay && nameInput) {
         nameDisplay.addEventListener('click', () => {
-            nameInput.value = _petState?.petName || '';
+            const names = _petState?.petNames || {};
+            nameInput.value = names[_petState?.pet] || '';
             nameDisplay.classList.add('hidden');
             nameInput.classList.remove('hidden');
             nameInput.focus();
@@ -454,7 +459,8 @@ async function initPet() {
         const commitRename = () => {
             const val = nameInput.value.trim();
             if (val && _petState) {
-                _petState.petName = val;
+                if (!_petState.petNames) _petState.petNames = {};
+                _petState.petNames[_petState.pet] = val;
                 savePetState();
             }
             nameInput.classList.add('hidden');
@@ -466,7 +472,8 @@ async function initPet() {
         nameInput.addEventListener('keydown', e => {
             if (e.key === 'Enter') nameInput.blur();
             if (e.key === 'Escape') {
-                nameInput.value = _petState?.petName || '';
+                const names = _petState?.petNames || {};
+                nameInput.value = names[_petState?.pet] || '';
                 nameInput.blur();
             }
         });
