@@ -2154,9 +2154,9 @@ function renderQuadrantReality(sessions, todos) {
 
 const WALKTHROUGH_STEPS = [
     {
-        target: '.timer-section',
-        position: 'below',
-        message: 'The Pomodoro timer. Choose Light, Deep, or Custom focus sessions and drag the ring to set your duration.',
+        target: '#hamburger-btn',
+        position: 'right',
+        message: 'Open the menu to switch between Focus and Insights, or change your theme.',
     },
     {
         target: '.todo-section',
@@ -2164,14 +2164,19 @@ const WALKTHROUGH_STEPS = [
         message: 'Your task list. Add tasks, set deadlines, and pick which task to focus on during a session.',
     },
     {
+        target: '.timer-section',
+        position: 'left',
+        message: 'The Pomodoro timer. Choose Light or Deep focus sessions and drag the ring to set your duration.',
+    },
+    {
         target: '.matrix-section',
         position: 'left',
         message: 'The Eisenhower Matrix. Drag tasks between quadrants to prioritize by importance and urgency.',
     },
     {
-        target: '#hamburger-btn',
+        target: '#pet-section',
         position: 'right',
-        message: 'Open the menu to switch between Focus and Insights. Insights tracks your sessions, time per course, and quadrant balance over each week.',
+        message: 'Your focus pet. Complete Pomodoro sessions to earn XP and level up. Pick your favorite animal with the swap button.',
     },
     {
         target: '#btn-theme-fab',
